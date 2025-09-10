@@ -128,6 +128,41 @@ body {
     position: relative;
     overflow: hidden;
     background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%);
+    position: relative;
+}
+
+.diagram-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 15px;
+    background: linear-gradient(90deg, 
+        #fff 0%, #fff 10px, 
+        #e0e0e0 10px, #e0e0e0 20px, 
+        #fff 20px, #fff 30px,
+        #e0e0e0 30px, #e0e0e0 40px);
+    background-size: 40px 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.diagram-area::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 15px;
+    background: linear-gradient(90deg, 
+        #fff 0%, #fff 10px, 
+        #e0e0e0 10px, #e0e0e0 20px, 
+        #fff 20px, #fff 30px,
+        #e0e0e0 30px, #e0e0e0 40px);
+    background-size: 40px 100%;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
 }
 
 .drop-zone {
@@ -180,6 +215,53 @@ body {
     }
 }
 
+@keyframes waterShimmer {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.3; }
+}
+
+@keyframes waterFlow {
+    0% { transform: translateX(0) translateY(0); }
+    50% { transform: translateX(-5px) translateY(2px); }
+    100% { transform: translateX(0) translateY(0); }
+}
+
+.water-shimmer {
+    animation: waterShimmer 3s ease-in-out infinite;
+}
+
+.water-flow {
+    animation: waterFlow 4s ease-in-out infinite;
+}
+
+.depth-marker {
+    fill: #0d47a1;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0.7;
+}
+
+.pool-edge {
+    stroke: #bdbdbd;
+    stroke-width: 6;
+    fill: none;
+    filter: drop-shadow(4px 4px 6px rgba(0,0,0,0.3));
+}
+
+.starting-block {
+    fill: #616161;
+    stroke: #424242;
+    stroke-width: 2;
+}
+
+.starting-block-number {
+    fill: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+
 .drop-icon {
     font-size: 72px;
     display: block;
@@ -210,6 +292,8 @@ body {
     position: relative;
     overflow: auto;
     background: linear-gradient(180deg, #e1f5fe 0%, #b3e5fc 100%);
+    padding: 20px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
 }
 
 .modal {
@@ -320,10 +404,26 @@ body {
 }
 
 .lane-divider {
-    stroke: #ffc107;
-    stroke-width: 3;
-    stroke-dasharray: 10, 5;
-    opacity: 0.8;
+    stroke: #fff;
+    stroke-width: 4;
+    stroke-dasharray: none;
+    opacity: 0.9;
+    filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));
+}
+
+.lane-rope {
+    fill: #ff5722;
+    opacity: 0.9;
+}
+
+.lane-rope-blue {
+    fill: #2196f3;
+    opacity: 0.9;
+}
+
+.lane-rope-yellow {
+    fill: #ffc107;
+    opacity: 0.9;
 }
 
 .lane-label {
@@ -384,6 +484,9 @@ body {
 
 #diagramSvg {
     background: url(#poolTiles);
+    border: 8px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: inset 0 0 30px rgba(0,100,200,0.2);
 }
 
 .node-dragging {

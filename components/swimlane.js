@@ -266,19 +266,37 @@ class SwimLaneRenderer {
     }
 
     zoom(factor) {
-        this.scale *= factor;
-        this.applyTransform();
+        const viewBox = this.svg.getAttribute('viewBox') || '0 0 1440 800';
+        const [x, y, width, height] = viewBox.split(' ').map(Number);
+        
+        // Calculate the center point of the current view
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Calculate new dimensions
+        const newWidth = width / factor;
+        const newHeight = height / factor;
+        
+        // Calculate new position to keep center point stable
+        const newX = centerX - newWidth / 2;
+        const newY = centerY - newHeight / 2;
+        
+        this.svg.setAttribute('viewBox', `${newX} ${newY} ${newWidth} ${newHeight}`);
     }
 
     pan(dx, dy) {
-        this.translateX += dx;
-        this.translateY += dy;
-        this.applyTransform();
+        const viewBox = this.svg.getAttribute('viewBox') || '0 0 1440 800';
+        const [x, y, width, height] = viewBox.split(' ').map(Number);
+        
+        const newX = x - dx * (width / this.svg.clientWidth);
+        const newY = y - dy * (height / this.svg.clientHeight);
+        
+        this.svg.setAttribute('viewBox', `${newX} ${newY} ${width} ${height}`);
     }
 
     applyTransform() {
-        const transform = `translate(${this.translateX}, ${this.translateY}) scale(${this.scale})`;
-        this.svg.querySelector('g').style.transform = transform;
+        // This method is no longer needed as we're using viewBox directly
+        // Kept for backward compatibility
     }
 
     addLane(name) {

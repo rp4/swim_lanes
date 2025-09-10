@@ -24,6 +24,28 @@ class DiagramEditor {
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
     }
 
+    getSVGPoint(e) {
+        const rect = this.svg.getBoundingClientRect();
+        const viewBox = this.svg.getAttribute('viewBox');
+        
+        if (viewBox) {
+            const [vx, vy, vw, vh] = viewBox.split(' ').map(Number);
+            const scaleX = vw / rect.width;
+            const scaleY = vh / rect.height;
+            
+            return {
+                x: vx + (e.clientX - rect.left) * scaleX,
+                y: vy + (e.clientY - rect.top) * scaleY
+            };
+        } else {
+            const point = this.svg.createSVGPoint();
+            point.x = e.clientX - rect.left;
+            point.y = e.clientY - rect.top;
+            const svgPoint = point.matrixTransform(this.svg.getScreenCTM().inverse());
+            return { x: svgPoint.x, y: svgPoint.y };
+        }
+    }
+
     handleMouseDown(e) {
         const target = e.target.closest('.process-node');
         if (target && !this.isConnecting) {
@@ -100,12 +122,7 @@ class DiagramEditor {
         const nodeId = nodeElement.getAttribute('data-node-id');
         const node = this.renderer.findNode(nodeId);
         
-        const rect = this.svg.getBoundingClientRect();
-        const point = this.svg.createSVGPoint();
-        point.x = e.clientX - rect.left;
-        point.y = e.clientY - rect.top;
-        
-        const svgPoint = point.matrixTransform(this.svg.getScreenCTM().inverse());
+        const svgPoint = this.getSVGPoint(e);
         
         this.dragOffset = {
             x: svgPoint.x - node.position.x,
@@ -121,12 +138,7 @@ class DiagramEditor {
         const nodeId = this.draggedNode.getAttribute('data-node-id');
         const node = this.renderer.findNode(nodeId);
         
-        const rect = this.svg.getBoundingClientRect();
-        const point = this.svg.createSVGPoint();
-        point.x = e.clientX - rect.left;
-        point.y = e.clientY - rect.top;
-        
-        const svgPoint = point.matrixTransform(this.svg.getScreenCTM().inverse());
+        const svgPoint = this.getSVGPoint(e);
         
         node.position.x = svgPoint.x - this.dragOffset.x;
         node.position.y = svgPoint.y - this.dragOffset.y;
@@ -206,14 +218,28 @@ class DiagramEditor {
         if (!this.connectionPreview) return;
         
         const rect = this.svg.getBoundingClientRect();
-        const point = this.svg.createSVGPoint();
-        point.x = e.clientX - rect.left;
-        point.y = e.clientY - rect.top;
+        const viewBox = this.svg.getAttribute('viewBox');
         
-        const svgPoint = point.matrixTransform(this.svg.getScreenCTM().inverse());
-        
-        this.connectionPreview.setAttribute('x2', svgPoint.x);
-        this.connectionPreview.setAttribute('y2', svgPoint.y);
+        if (viewBox) {
+            const [vx, vy, vw, vh] = viewBox.split(' ').map(Number);
+            const scaleX = vw / rect.width;
+            const scaleY = vh / rect.height;
+            
+            const x = vx + (e.clientX - rect.left) * scaleX;
+            const y = vy + (e.clientY - rect.top) * scaleY;
+            
+            this.connectionPreview.setAttribute('x2', x);
+            this.connectionPreview.setAttribute('y2', y);
+        } else {
+            const point = this.svg.createSVGPoint();
+            point.x = e.clientX - rect.left;
+            point.y = e.clientY - rect.top;
+            
+            const svgPoint = point.matrixTransform(this.svg.getScreenCTM().inverse());
+            
+            this.connectionPreview.setAttribute('x2', svgPoint.x);
+            this.connectionPreview.setAttribute('y2', svgPoint.y);
+        }
     }
 
     completeConnection(toNodeId) {
