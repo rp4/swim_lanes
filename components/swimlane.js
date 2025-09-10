@@ -31,6 +31,54 @@ class SwimLaneRenderer {
         marker.appendChild(polygon);
         defs.appendChild(marker);
     }
+    
+    createLaneRope(laneGroup, yPosition) {
+        const ropeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        // Create rope floats
+        for (let x = 20; x <= 1420; x += 20) {
+            const float = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            float.setAttribute('cx', x);
+            float.setAttribute('cy', yPosition);
+            float.setAttribute('r', '6');
+            
+            // Alternate colors for rope floats
+            if ((x / 20) % 3 === 0) {
+                float.classList.add('lane-rope-blue');
+            } else if ((x / 20) % 3 === 1) {
+                float.classList.add('lane-rope');
+            } else {
+                float.classList.add('lane-rope-yellow');
+            }
+            
+            ropeGroup.appendChild(float);
+        }
+        
+        // Add connecting line
+        const ropeLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ropeLine.setAttribute('x1', '20');
+        ropeLine.setAttribute('y1', yPosition);
+        ropeLine.setAttribute('x2', '1420');
+        ropeLine.setAttribute('y2', yPosition);
+        ropeLine.classList.add('lane-divider');
+        ropeGroup.appendChild(ropeLine);
+        
+        laneGroup.appendChild(ropeGroup);
+    }
+    
+    addDepthMarkers() {
+        const depths = ['3FT', '5FT', '8FT', '12FT'];
+        const positions = [200, 500, 900, 1300];
+        
+        depths.forEach((depth, index) => {
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            marker.setAttribute('x', positions[index]);
+            marker.setAttribute('y', '25');
+            marker.classList.add('depth-marker');
+            marker.textContent = depth;
+            this.swimlanesGroup.appendChild(marker);
+        });
+    }
 
     render(processData) {
         this.processData = processData;
@@ -50,21 +98,64 @@ class SwimLaneRenderer {
     renderSwimLanes() {
         let currentY = 50;
         
+        // Add pool edge at the top
+        const poolEdge = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        poolEdge.setAttribute('x', '10');
+        poolEdge.setAttribute('y', '30');
+        poolEdge.setAttribute('width', '1420');
+        poolEdge.setAttribute('height', '10');
+        poolEdge.classList.add('pool-edge');
+        poolEdge.style.fill = '#e0e0e0';
+        this.swimlanesGroup.appendChild(poolEdge);
+        
+        // Add depth markers
+        this.addDepthMarkers();
+        
         this.processData.lanes.forEach((lane, index) => {
             const laneGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             laneGroup.setAttribute('data-lane-id', lane.id);
             laneGroup.classList.add('lane-group');
+            
+            // Add water effect background for each lane
+            const waterRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            waterRect.setAttribute('x', '20');
+            waterRect.setAttribute('y', currentY);
+            waterRect.setAttribute('width', '1400');
+            waterRect.setAttribute('height', lane.height || 140);
+            waterRect.setAttribute('rx', '2');
+            waterRect.setAttribute('ry', '2');
+            waterRect.style.fill = 'url(#waterGradient)';
+            waterRect.style.opacity = '0.3';
+            waterRect.classList.add('water-flow');
+            laneGroup.appendChild(waterRect);
             
             const laneRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             laneRect.setAttribute('x', '20');
             laneRect.setAttribute('y', currentY);
             laneRect.setAttribute('width', '1400');
             laneRect.setAttribute('height', lane.height || 140);
-            laneRect.setAttribute('rx', '10');
-            laneRect.setAttribute('ry', '10');
+            laneRect.setAttribute('rx', '2');
+            laneRect.setAttribute('ry', '2');
             laneRect.classList.add('swimlane');
-            laneRect.style.fill = lane.color + '40';
+            laneRect.style.fill = lane.color + '20';
             laneRect.style.stroke = lane.color;
+            laneRect.style.filter = 'url(#poolReflection)';
+            
+            // Add starting block
+            const startBlock = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            startBlock.setAttribute('x', '5');
+            startBlock.setAttribute('y', currentY + (lane.height || 140) / 2 - 20);
+            startBlock.setAttribute('width', '15');
+            startBlock.setAttribute('height', '40');
+            startBlock.classList.add('starting-block');
+            laneGroup.appendChild(startBlock);
+            
+            const blockNumber = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            blockNumber.setAttribute('x', '12');
+            blockNumber.setAttribute('y', currentY + (lane.height || 140) / 2 + 5);
+            blockNumber.classList.add('starting-block-number');
+            blockNumber.textContent = index + 1;
+            laneGroup.appendChild(blockNumber);
             
             const laneLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             laneLabel.setAttribute('x', '40');
@@ -73,13 +164,8 @@ class SwimLaneRenderer {
             laneLabel.textContent = lane.name;
             
             if (index > 0) {
-                const divider = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                divider.setAttribute('x1', '20');
-                divider.setAttribute('y1', currentY - 5);
-                divider.setAttribute('x2', '1420');
-                divider.setAttribute('y2', currentY - 5);
-                divider.classList.add('lane-divider');
-                laneGroup.appendChild(divider);
+                // Create floating lane rope divider
+                this.createLaneRope(laneGroup, currentY - 5);
             }
             
             const resizeHandle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -99,6 +185,16 @@ class SwimLaneRenderer {
             lane.y = currentY;
             currentY += (lane.height || 140) + 10;
         });
+        
+        // Add pool edge at the bottom
+        const poolEdgeBottom = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        poolEdgeBottom.setAttribute('x', '10');
+        poolEdgeBottom.setAttribute('y', currentY);
+        poolEdgeBottom.setAttribute('width', '1420');
+        poolEdgeBottom.setAttribute('height', '10');
+        poolEdgeBottom.classList.add('pool-edge');
+        poolEdgeBottom.style.fill = '#e0e0e0';
+        this.swimlanesGroup.appendChild(poolEdgeBottom);
         
         this.svg.setAttribute('viewBox', `0 0 1440 ${currentY + 50}`);
     }
