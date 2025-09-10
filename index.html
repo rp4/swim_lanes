@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swim Lane Diagram - Pool Planner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="pool-container">
+        <header class="pool-header">
+            <h1>🏊 Swim Lane Process Visualizer 🏊‍♀️</h1>
+            <div class="wave-decoration"></div>
+        </header>
+
+        <div class="main-pool">
+            <div class="toolbar">
+                <div class="tool-group">
+                    <button id="uploadBtn" class="pool-btn">
+                        <span class="icon">📤</span>
+                        <span>Upload JSON</span>
+                    </button>
+                    <input type="file" id="fileInput" accept=".json" style="display: none;">
+                </div>
+
+                <div class="tool-group">
+                    <button id="addLaneBtn" class="pool-btn">
+                        <span class="icon">➕</span>
+                        <span>Add Lane</span>
+                    </button>
+                    <button id="addNodeBtn" class="pool-btn">
+                        <span class="icon">🏊</span>
+                        <span>Add Node</span>
+                    </button>
+                    <button id="connectBtn" class="pool-btn">
+                        <span class="icon">🔗</span>
+                        <span>Connect</span>
+                    </button>
+                </div>
+
+                <div class="tool-group">
+                    <button id="zoomInBtn" class="pool-btn">
+                        <span class="icon">🔍+</span>
+                    </button>
+                    <button id="zoomOutBtn" class="pool-btn">
+                        <span class="icon">🔍-</span>
+                    </button>
+                    <button id="fitBtn" class="pool-btn">
+                        <span class="icon">⬜</span>
+                        <span>Fit</span>
+                    </button>
+                </div>
+
+                <div class="tool-group">
+                    <button id="undoBtn" class="pool-btn">
+                        <span class="icon">↩️</span>
+                        <span>Undo</span>
+                    </button>
+                    <button id="redoBtn" class="pool-btn">
+                        <span class="icon">↪️</span>
+                        <span>Redo</span>
+                    </button>
+                </div>
+
+                <div class="tool-group">
+                    <button id="downloadJsonBtn" class="pool-btn">
+                        <span class="icon">💾</span>
+                        <span>Save JSON</span>
+                    </button>
+                    <button id="downloadImageBtn" class="pool-btn">
+                        <span class="icon">🖼️</span>
+                        <span>Save Image</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="diagram-area">
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-content">
+                        <div class="water-ripple"></div>
+                        <span class="drop-icon">🏊‍♂️</span>
+                        <h2>Dive In!</h2>
+                        <p>Drop your process JSON here or click to upload</p>
+                        <button id="loadSampleBtn" class="pool-btn secondary">Load Sample Process</button>
+                    </div>
+                </div>
+
+                <div id="swimlaneCanvas" class="swimlane-canvas" style="display: none;">
+                    <svg id="diagramSvg" width="100%" height="100%">
+                        <defs>
+                            <linearGradient id="poolGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#90caf9;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="laneGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#bbdefb;stop-opacity:0.8" />
+                                <stop offset="50%" style="stop-color:#64b5f6;stop-opacity:0.6" />
+                                <stop offset="100%" style="stop-color:#42a5f5;stop-opacity:0.8" />
+                            </linearGradient>
+                            <filter id="waterEffect">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" result="turbulence"/>
+                                <feColorMatrix in="turbulence" type="saturate" values="0"/>
+                                <feComponentTransfer>
+                                    <feFuncA type="discrete" tableValues="0 0.1 0.1 0.2 0.2 0.3 0.3 0.4"/>
+                                </feComponentTransfer>
+                                <feGaussianBlur stdDeviation="1"/>
+                                <feComposite operator="over" in2="SourceGraphic"/>
+                            </filter>
+                            <pattern id="poolTiles" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <rect width="40" height="40" fill="#e1f5fe" opacity="0.3"/>
+                                <rect x="0" y="0" width="39" height="39" fill="none" stroke="#81d4fa" stroke-width="0.5" opacity="0.5"/>
+                            </pattern>
+                        </defs>
+                        <g id="swimlanes"></g>
+                        <g id="connections"></g>
+                        <g id="nodes"></g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div id="nodeModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Node</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nodeText">Node Text:</label>
+                        <input type="text" id="nodeText" class="pool-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeType">Node Type:</label>
+                        <select id="nodeType" class="pool-select">
+                            <option value="start">Start (🏁)</option>
+                            <option value="process">Process (🏊)</option>
+                            <option value="decision">Decision (🤿)</option>
+                            <option value="end">End (🏆)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeColor">Color:</label>
+                        <input type="color" id="nodeColor" value="#4fc3f7">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveNodeBtn" class="pool-btn">Save</button>
+                    <button id="deleteNodeBtn" class="pool-btn danger">Delete</button>
+                    <button id="cancelNodeBtn" class="pool-btn secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="laneModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Lane</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="laneName">Lane Name:</label>
+                        <input type="text" id="laneName" class="pool-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="laneColor">Lane Color:</label>
+                        <input type="color" id="laneColor" value="#64b5f6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveLaneBtn" class="pool-btn">Save</button>
+                    <button id="deleteLaneBtn" class="pool-btn danger">Delete</button>
+                    <button id="cancelLaneBtn" class="pool-btn secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="utils/parser.js"></script>
+    <script src="utils/exporter.js"></script>
+    <script src="components/swimlane.js"></script>
+    <script src="components/editor.js"></script>
+    <script src="components/controls.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
