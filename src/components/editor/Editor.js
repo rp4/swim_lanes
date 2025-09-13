@@ -62,7 +62,9 @@ export class DiagramEditor {
 
         const resizeHandle = e.target.closest('.resize-handle');
         if (resizeHandle) {
-            this.startResizing(e, resizeHandle);
+            e.preventDefault();
+            e.stopPropagation();
+            this.showLaneReorderMenu(e, resizeHandle);
         }
     }
 
@@ -146,8 +148,6 @@ export class DiagramEditor {
             this.dragNode(e);
         } else if (this.isConnecting && this.connectionPreview) {
             this.updateConnectionPreview(e);
-        } else if (this.isResizing) {
-            this.resizeLane(e);
         }
     }
 
@@ -162,8 +162,6 @@ export class DiagramEditor {
     handleMouseUp(e) {
         if (this.isDragging) {
             this.stopDragging();
-        } else if (this.isResizing) {
-            this.stopResizing();
         }
     }
 
@@ -522,28 +520,145 @@ export class DiagramEditor {
         closeBtn.addEventListener('click', cancelHandler);
     }
 
-    startResizing(e, handle) {
-        this.isResizing = true;
-        this.resizingLane = handle.getAttribute('data-lane-id');
-        this.resizeStartX = e.clientX;
-        this.resizeStartHeight = this.renderer.findLane(this.resizingLane).height || 140;
-    }
+    showLaneReorderMenu(e, handle) {
+        const laneId = handle.getAttribute('data-lane-id');
+        const lanes = this.renderer.processData.lanes;
+        const laneIndex = lanes.findIndex(l => l.id === laneId);
+        const lane = lanes[laneIndex];
 
-    resizeLane(e) {
-        if (!this.isResizing) return;
-        
-        const lane = this.renderer.findLane(this.resizingLane);
-        if (lane) {
-            const diff = e.clientX - this.resizeStartX;
-            lane.height = Math.max(100, this.resizeStartHeight + diff);
-            this.renderer.render(this.renderer.processData);
+        // Remove any existing menu
+        const existingMenu = document.querySelector('.lane-reorder-menu');
+        if (existingMenu) {
+            existingMenu.remove();
         }
+
+        // Create context menu
+        const menu = document.createElement('div');
+        menu.className = 'lane-reorder-menu';
+        menu.style.cssText = `
+            position: fixed;
+            left: ${e.clientX}px;
+            top: ${e.clientY}px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            z-index: 10000;
+            min-width: 180px;
+        `;
+
+        const menuItems = [];
+
+        // Move to Top
+        if (laneIndex > 0) {
+            menuItems.push({
+                label: '⬆️ Move to Top',
+                action: () => this.moveLaneToPosition(laneIndex, 0)
+            });
+        }
+
+        // Move Up
+        if (laneIndex > 0) {
+            menuItems.push({
+                label: '↑ Move Up',
+                action: () => this.moveLaneToPosition(laneIndex, laneIndex - 1)
+            });
+        }
+
+        // Move Down
+        if (laneIndex < lanes.length - 1) {
+            menuItems.push({
+                label: '↓ Move Down',
+                action: () => this.moveLaneToPosition(laneIndex, laneIndex + 1)
+            });
+        }
+
+        // Move to Bottom
+        if (laneIndex < lanes.length - 1) {
+            menuItems.push({
+                label: '⬇️ Move to Bottom',
+                action: () => this.moveLaneToPosition(laneIndex, lanes.length - 1)
+            });
+        }
+
+        // If no movement options available
+        if (menuItems.length === 0) {
+            menuItems.push({
+                label: 'No movement options',
+                action: null,
+                disabled: true
+            });
+        }
+
+        // Create menu items
+        menuItems.forEach(item => {
+            const menuItem = document.createElement('div');
+            menuItem.textContent = item.label;
+            menuItem.style.cssText = `
+                padding: 8px 16px;
+                cursor: ${item.disabled ? 'not-allowed' : 'pointer'};
+                color: ${item.disabled ? '#999' : '#333'};
+                font-size: 14px;
+                transition: background-color 0.2s;
+            `;
+
+            if (!item.disabled) {
+                menuItem.addEventListener('mouseover', () => {
+                    menuItem.style.backgroundColor = '#f0f0f0';
+                });
+                menuItem.addEventListener('mouseout', () => {
+                    menuItem.style.backgroundColor = 'transparent';
+                });
+                menuItem.addEventListener('click', () => {
+                    menu.remove();
+                    if (item.action) {
+                        item.action();
+                    }
+                });
+            }
+
+            menu.appendChild(menuItem);
+        });
+
+        // Add menu to document
+        document.body.appendChild(menu);
+
+        // Close menu when clicking outside
+        const closeMenu = (event) => {
+            if (!menu.contains(event.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+
+        // Delay adding the close listener to prevent immediate closure
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+        }, 0);
     }
 
-    stopResizing() {
-        this.isResizing = false;
-        this.resizingLane = null;
+    moveLaneToPosition(fromIndex, toIndex) {
+        if (fromIndex === toIndex) return;
+
+        this.saveState();
+        const lanes = this.renderer.processData.lanes;
+        const [movedLane] = lanes.splice(fromIndex, 1);
+
+        // Adjust toIndex if necessary after removal
+        const adjustedToIndex = fromIndex < toIndex ? toIndex : toIndex;
+        lanes.splice(adjustedToIndex, 0, movedLane);
+
+        // Re-render to update the display
+        this.renderer.render(this.renderer.processData);
+
+        // Show notification
+        const position = toIndex === 0 ? 'top' :
+                        toIndex === lanes.length - 1 ? 'bottom' :
+                        `position ${toIndex + 1}`;
+        this.showNotification(`Lane "${movedLane.name}" moved to ${position}`);
     }
+
 
     saveState() {
         const state = JSON.stringify(this.renderer.processData);

@@ -10,8 +10,8 @@ export class SwimLaneRenderer {
         this.processData = null;
         this.selectedNode = null;
         this.selectedLane = null;
-        
-        this.setupArrowMarker();
+
+        // Arrow marker removed - edges will display without arrows
     }
 
     addNodeTooltip(nodeGroup, node) {
@@ -102,23 +102,7 @@ export class SwimLaneRenderer {
         });
     }
 
-    setupArrowMarker() {
-        const defs = this.svg.querySelector('defs');
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', 'arrowhead');
-        marker.setAttribute('markerWidth', '10');
-        marker.setAttribute('markerHeight', '10');
-        marker.setAttribute('refX', '9');
-        marker.setAttribute('refY', '3');
-        marker.setAttribute('orient', 'auto');
-
-        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        polygon.setAttribute('points', '0 0, 10 3, 0 6');
-        polygon.setAttribute('fill', '#757575');
-
-        marker.appendChild(polygon);
-        defs.appendChild(marker);
-    }
+    // Arrow marker method removed - edges will display without arrows
     
     createLaneDivider(laneGroup, yPosition) {
         const dividerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -174,17 +158,37 @@ export class SwimLaneRenderer {
                 this.createLaneDivider(laneGroup, currentY - 5);
             }
             
-            const resizeHandle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            resizeHandle.setAttribute('x', '1415');
-            resizeHandle.setAttribute('y', currentY + (lane.height || 140) / 2 - 20);
-            resizeHandle.setAttribute('width', '10');
-            resizeHandle.setAttribute('height', '40');
-            resizeHandle.classList.add('resize-handle');
-            resizeHandle.setAttribute('data-lane-id', lane.id);
-            
+            // Create reorder menu button (three dots)
+            const reorderButton = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            reorderButton.classList.add('resize-handle');
+            reorderButton.setAttribute('data-lane-id', lane.id);
+
+            // Button background
+            const buttonBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            buttonBg.setAttribute('x', '1405');
+            buttonBg.setAttribute('y', currentY + (lane.height || 140) / 2 - 15);
+            buttonBg.setAttribute('width', '30');
+            buttonBg.setAttribute('height', '30');
+            buttonBg.setAttribute('rx', '4');
+            buttonBg.classList.add('resize-handle');
+            buttonBg.setAttribute('data-lane-id', lane.id);
+
+            // Three dots
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('cx', '1420');
+                dot.setAttribute('cy', currentY + (lane.height || 140) / 2 - 5 + (i * 10));
+                dot.setAttribute('r', '2');
+                dot.setAttribute('fill', '#666');
+                dot.style.pointerEvents = 'none';
+                reorderButton.appendChild(dot);
+            }
+
+            reorderButton.insertBefore(buttonBg, reorderButton.firstChild);
+
             laneGroup.appendChild(laneRect);
             laneGroup.appendChild(laneLabel);
-            laneGroup.appendChild(resizeHandle);
+            laneGroup.appendChild(reorderButton);
             
             this.swimlanesGroup.appendChild(laneGroup);
             
@@ -279,7 +283,7 @@ export class SwimLaneRenderer {
                 const connectionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 connectionPath.setAttribute('d', path);
                 connectionPath.classList.add('connection-line');
-                connectionPath.setAttribute('marker-end', 'url(#arrowhead)');
+                // Arrow removed from edge - displays as simple line
                 connectionPath.setAttribute('data-from', conn.from);
                 connectionPath.setAttribute('data-to', conn.to);
                 
@@ -305,28 +309,64 @@ export class SwimLaneRenderer {
         const fromY = fromNode.position.y;
         const toX = toNode.position.x;
         const toY = toNode.position.y;
-        
+
         const dx = toX - fromX;
         const dy = toY - fromY;
-        
-        let startX = fromX;
-        let startY = fromY;
-        let endX = toX;
-        let endY = toY;
-        
-        if (Math.abs(dx) > Math.abs(dy)) {
-            startX += dx > 0 ? 35 : -35;
-            endX += dx > 0 ? -35 : 35;
+        const angle = Math.atan2(dy, dx);
+
+        // Determine the best anchor points based on angle
+        const anchorDistance = 35;
+
+        // Calculate start point (from node anchor)
+        let startX, startY;
+        const fromAngle = angle;
+        if (fromAngle >= -Math.PI/4 && fromAngle < Math.PI/4) {
+            // Right anchor
+            startX = fromX + anchorDistance;
+            startY = fromY;
+        } else if (fromAngle >= Math.PI/4 && fromAngle < 3*Math.PI/4) {
+            // Bottom anchor
+            startX = fromX;
+            startY = fromY + anchorDistance;
+        } else if (fromAngle >= -3*Math.PI/4 && fromAngle < -Math.PI/4) {
+            // Top anchor
+            startX = fromX;
+            startY = fromY - anchorDistance;
         } else {
-            startY += dy > 0 ? 35 : -35;
-            endY += dy > 0 ? -35 : 35;
+            // Left anchor
+            startX = fromX - anchorDistance;
+            startY = fromY;
         }
-        
-        const controlX1 = startX + (endX - startX) * 0.5;
-        const controlY1 = startY;
-        const controlX2 = startX + (endX - startX) * 0.5;
-        const controlY2 = endY;
-        
+
+        // Calculate end point (to node anchor) - opposite direction
+        let endX, endY;
+        const toAngle = angle + Math.PI; // Reverse angle for incoming connection
+        if (toAngle >= -Math.PI/4 && toAngle < Math.PI/4) {
+            // Right anchor
+            endX = toX + anchorDistance;
+            endY = toY;
+        } else if (toAngle >= Math.PI/4 && toAngle < 3*Math.PI/4) {
+            // Bottom anchor
+            endX = toX;
+            endY = toY + anchorDistance;
+        } else if ((toAngle >= 3*Math.PI/4 && toAngle <= Math.PI) ||
+                   (toAngle >= -Math.PI && toAngle < -3*Math.PI/4)) {
+            // Left anchor
+            endX = toX - anchorDistance;
+            endY = toY;
+        } else {
+            // Top anchor
+            endX = toX;
+            endY = toY - anchorDistance;
+        }
+
+        // Create smooth bezier curve with better control points
+        const controlDistance = Math.min(Math.abs(dx), Math.abs(dy)) * 0.5;
+        const controlX1 = startX + (endX - startX) * 0.3;
+        const controlY1 = startY + (endY - startY) * 0.3;
+        const controlX2 = startX + (endX - startX) * 0.7;
+        const controlY2 = startY + (endY - startY) * 0.7;
+
         return `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
     }
 

@@ -11,9 +11,13 @@ export class DiagramControls {
     }
 
     setupControls() {
-        document.getElementById('uploadBtn').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
+        // Upload button in initial screen
+        const uploadInitialBtn = document.getElementById('uploadInitialBtn');
+        if (uploadInitialBtn) {
+            uploadInitialBtn.addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+        }
 
         document.getElementById('fileInput').addEventListener('change', (e) => {
             this.handleFileUpload(e.target.files[0]);
@@ -27,40 +31,14 @@ export class DiagramControls {
             this.addNewLane();
         });
 
-        document.getElementById('addNodeBtn').addEventListener('click', () => {
-            this.addNewNode();
-        });
+        // Remove addNodeBtn listener since we're using drag and drop instead
+        // Remove connectBtn listener since we're using anchor-based connections
 
-        document.getElementById('connectBtn').addEventListener('click', () => {
-            this.toggleConnectMode();
-        });
-
-        document.getElementById('zoomInBtn').addEventListener('click', () => {
-            this.renderer.zoom(1.2);
-        });
-
-        document.getElementById('zoomOutBtn').addEventListener('click', () => {
-            this.renderer.zoom(0.8);
-        });
-
-        document.getElementById('fitBtn').addEventListener('click', () => {
-            this.renderer.fitToScreen();
-        });
-
-        document.getElementById('undoBtn').addEventListener('click', () => {
-            this.editor.undo();
-        });
-
-        document.getElementById('redoBtn').addEventListener('click', () => {
-            this.editor.redo();
-        });
+        // Canvas interaction setup
+        this.setupCanvasInteractions();
 
         document.getElementById('downloadJsonBtn').addEventListener('click', () => {
             this.downloadJSON();
-        });
-
-        document.getElementById('downloadImageBtn').addEventListener('click', () => {
-            this.downloadImage();
         });
 
         document.addEventListener('save', (e) => {
@@ -68,10 +46,76 @@ export class DiagramControls {
         });
     }
 
+    setupCanvasInteractions() {
+        const canvas = document.getElementById('swimlaneCanvas');
+        const svg = document.getElementById('diagramSvg');
+
+        // Mouse wheel zoom
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            // Get mouse position relative to SVG
+            const rect = svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Calculate zoom factor
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+
+            // Zoom centered on mouse position
+            this.renderer.zoomAtPoint(zoomFactor, mouseX, mouseY);
+        });
+
+        // Drag to pan
+        let isPanning = false;
+        let startX, startY;
+
+        svg.addEventListener('mousedown', (e) => {
+            // Only start panning with left mouse button and if not clicking on interactive elements
+            if (e.button === 0 && !e.target.closest('.process-node, .resize-handle')) {
+                isPanning = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                svg.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        svg.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                this.renderer.pan(dx, dy);
+
+                startX = e.clientX;
+                startY = e.clientY;
+            }
+        });
+
+        svg.addEventListener('mouseup', () => {
+            if (isPanning) {
+                isPanning = false;
+                svg.style.cursor = 'grab';
+            }
+        });
+
+        svg.addEventListener('mouseleave', () => {
+            if (isPanning) {
+                isPanning = false;
+                svg.style.cursor = 'grab';
+            }
+        });
+
+        // Set initial cursor
+        svg.style.cursor = 'grab';
+    }
+
     setupDragAndDrop() {
         const dropZone = document.getElementById('dropZone');
         const swimlaneCanvas = document.getElementById('swimlaneCanvas');
 
+        // Original file drop zone setup
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, this.preventDefaults, false);
             document.body.addEventListener(eventName, this.preventDefaults, false);
@@ -96,9 +140,117 @@ export class DiagramControls {
             }
         }, false);
 
-        dropZone.addEventListener('click', () => {
-            document.getElementById('fileInput').click();
+        dropZone.addEventListener('click', (e) => {
+            // Only trigger file input if not clicking on buttons
+            if (!e.target.closest('button')) {
+                document.getElementById('fileInput').click();
+            }
         });
+
+        // Setup draggable nodes from palette
+        this.setupNodePaletteDragAndDrop();
+    }
+
+    setupNodePaletteDragAndDrop() {
+        const draggableNodes = document.querySelectorAll('.draggable-node');
+        const svg = document.getElementById('diagramSvg');
+        const swimlanes = document.getElementById('swimlanes');
+
+        draggableNodes.forEach(node => {
+            node.addEventListener('dragstart', (e) => {
+                const nodeType = node.getAttribute('data-node-type');
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('node-type', nodeType);
+                node.classList.add('dragging');
+            });
+
+            node.addEventListener('dragend', (e) => {
+                node.classList.remove('dragging');
+            });
+        });
+
+        // Allow dropping on swim lanes
+        svg.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+
+            // Highlight the lane being hovered over
+            const point = svg.createSVGPoint();
+            point.x = e.clientX;
+            point.y = e.clientY;
+            const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
+
+            const lanes = swimlanes.querySelectorAll('.swimlane');
+            lanes.forEach(lane => {
+                const rect = lane.querySelector('rect');
+                if (rect) {
+                    const y = parseFloat(rect.getAttribute('y'));
+                    const height = parseFloat(rect.getAttribute('height'));
+
+                    if (svgPoint.y >= y && svgPoint.y <= y + height) {
+                        lane.classList.add('drop-target');
+                    } else {
+                        lane.classList.remove('drop-target');
+                    }
+                }
+            });
+        });
+
+        svg.addEventListener('dragleave', (e) => {
+            // Remove all drop target highlights
+            const lanes = swimlanes.querySelectorAll('.swimlane');
+            lanes.forEach(lane => lane.classList.remove('drop-target'));
+        });
+
+        svg.addEventListener('drop', (e) => {
+            e.preventDefault();
+
+            const nodeType = e.dataTransfer.getData('node-type');
+            if (!nodeType) return;
+
+            // Get drop position in SVG coordinates
+            const point = svg.createSVGPoint();
+            point.x = e.clientX;
+            point.y = e.clientY;
+            const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
+
+            // Find which lane was dropped on
+            const lanes = swimlanes.querySelectorAll('.swimlane');
+            let targetLane = null;
+
+            lanes.forEach(lane => {
+                const rect = lane.querySelector('rect');
+                if (rect) {
+                    const y = parseFloat(rect.getAttribute('y'));
+                    const height = parseFloat(rect.getAttribute('height'));
+
+                    if (svgPoint.y >= y && svgPoint.y <= y + height) {
+                        targetLane = lane;
+                    }
+                }
+                lane.classList.remove('drop-target');
+            });
+
+            if (targetLane && this.renderer.processData) {
+                const laneId = targetLane.getAttribute('data-lane-id');
+
+                // Create the node at the drop position
+                const nodeText = this.getDefaultNodeText(nodeType);
+                this.editor.saveState();
+
+                // Add node with position
+                const node = this.renderer.addNode(laneId, nodeType, nodeText, svgPoint.x, svgPoint.y);
+                this.showNotification(`${nodeType} node added to lane!`);
+            }
+        });
+    }
+
+    getDefaultNodeText(nodeType) {
+        switch(nodeType) {
+            case 'risk': return 'New Risk';
+            case 'control': return 'New Control';
+            default: return 'New Step';
+        }
     }
 
     preventDefaults(e) {
@@ -220,19 +372,6 @@ export class DiagramControls {
         }
     }
 
-    downloadImage() {
-        const processData = this.renderer.getProcessData();
-        if (!processData) {
-            alert('No diagram to export');
-            return;
-        }
-
-        const format = prompt('Enter format (png/svg):', 'png') || 'png';
-        const filename = prompt('Enter filename:', 'swimlane-diagram') || 'swimlane-diagram';
-        
-        this.exporter.exportToImage(this.renderer.svg, format, filename);
-        this.showNotification(`${format.toUpperCase()} downloaded!`);
-    }
 
     showNotification(message, type = 'success') {
         const notification = document.createElement('div');
