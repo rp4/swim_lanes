@@ -66,9 +66,7 @@ export class SwimLaneRenderer {
 
     addConnectionAnchors(nodeGroup, x, y, nodeId) {
         const anchors = [
-            { x: x, y: y - 35, position: 'top' },
             { x: x + 35, y: y, position: 'right' },
-            { x: x, y: y + 35, position: 'bottom' },
             { x: x - 35, y: y, position: 'left' }
         ];
 
@@ -207,11 +205,13 @@ export class SwimLaneRenderer {
                 nodeGroup.setAttribute('data-lane-id', lane.id);
                 nodeGroup.classList.add('process-node');
                 nodeGroup.style.cursor = 'move';
-                
+
                 let nodeShape;
                 const x = node.position.x;
+                // Always use lane center for y position - nodes should align with their lanes
                 const y = lane.y + 70;
-                
+
+                // Store the calculated position
                 node.position.y = y;
                 
                 switch(node.type) {
@@ -312,62 +312,61 @@ export class SwimLaneRenderer {
 
         const dx = toX - fromX;
         const dy = toY - fromY;
-        const angle = Math.atan2(dy, dx);
-
-        // Determine the best anchor points based on angle
         const anchorDistance = 35;
 
-        // Calculate start point (from node anchor)
-        let startX, startY;
-        const fromAngle = angle;
-        if (fromAngle >= -Math.PI/4 && fromAngle < Math.PI/4) {
-            // Right anchor
-            startX = fromX + anchorDistance;
-            startY = fromY;
-        } else if (fromAngle >= Math.PI/4 && fromAngle < 3*Math.PI/4) {
-            // Bottom anchor
-            startX = fromX;
-            startY = fromY + anchorDistance;
-        } else if (fromAngle >= -3*Math.PI/4 && fromAngle < -Math.PI/4) {
-            // Top anchor
-            startX = fromX;
-            startY = fromY - anchorDistance;
-        } else {
-            // Left anchor
-            startX = fromX - anchorDistance;
-            startY = fromY;
-        }
+        // Determine which anchors to use (left or right)
+        let startX, startY, endX, endY;
 
-        // Calculate end point (to node anchor) - opposite direction
-        let endX, endY;
-        const toAngle = angle + Math.PI; // Reverse angle for incoming connection
-        if (toAngle >= -Math.PI/4 && toAngle < Math.PI/4) {
-            // Right anchor
-            endX = toX + anchorDistance;
-            endY = toY;
-        } else if (toAngle >= Math.PI/4 && toAngle < 3*Math.PI/4) {
-            // Bottom anchor
-            endX = toX;
-            endY = toY + anchorDistance;
-        } else if ((toAngle >= 3*Math.PI/4 && toAngle <= Math.PI) ||
-                   (toAngle >= -Math.PI && toAngle < -3*Math.PI/4)) {
-            // Left anchor
-            endX = toX - anchorDistance;
+        if (dx > 0) {
+            // Target is to the right of source
+            startX = fromX + anchorDistance; // Right anchor of source
+            startY = fromY;
+            endX = toX - anchorDistance; // Left anchor of target
             endY = toY;
         } else {
-            // Top anchor
-            endX = toX;
-            endY = toY - anchorDistance;
+            // Target is to the left of source
+            startX = fromX - anchorDistance; // Left anchor of source
+            startY = fromY;
+            endX = toX + anchorDistance; // Right anchor of target
+            endY = toY;
         }
 
-        // Create smooth bezier curve with better control points
-        const controlDistance = Math.min(Math.abs(dx), Math.abs(dy)) * 0.5;
-        const controlX1 = startX + (endX - startX) * 0.3;
-        const controlY1 = startY + (endY - startY) * 0.3;
-        const controlX2 = startX + (endX - startX) * 0.7;
-        const controlY2 = startY + (endY - startY) * 0.7;
+        // Determine path type based on node positions
+        const verticalOffset = Math.abs(dy);
+        const horizontalGap = Math.abs(endX - startX);
 
-        return `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+        // Case 1: Nodes are horizontally aligned (straight line)
+        if (verticalOffset < 10) {
+            return `M ${startX} ${startY} L ${endX} ${endY}`;
+        }
+
+        // Case 2: Nodes need to connect around each other (going backwards)
+        if ((dx > 0 && endX < startX) || (dx < 0 && endX > startX)) {
+            // Create a rectangular path when nodes overlap horizontally
+            const midPointOffset = Math.max(50, Math.abs(dx) * 0.3);
+            const extendX1 = dx > 0 ? startX + midPointOffset : startX - midPointOffset;
+            const extendX2 = dx > 0 ? endX - midPointOffset : endX + midPointOffset;
+
+            return `M ${startX} ${startY} L ${extendX1} ${startY} L ${extendX1} ${endY} L ${endX} ${endY}`;
+        }
+
+        // Case 3: Standard curved connection for vertical offset
+        if (horizontalGap > 100) {
+            // Use bezier curve for longer distances
+            const controlOffset = Math.min(horizontalGap * 0.5, 150);
+            const controlX1 = startX + (dx > 0 ? controlOffset : -controlOffset);
+            const controlY1 = startY;
+            const controlX2 = endX + (dx > 0 ? -controlOffset : controlOffset);
+            const controlY2 = endY;
+
+            return `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+        } else {
+            // Use quadratic curve for shorter distances
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
+
+            return `M ${startX} ${startY} Q ${midX} ${startY}, ${midX} ${midY} T ${endX} ${endY}`;
+        }
     }
 
     getPathMidpoint(fromNode, toNode) {
@@ -489,7 +488,7 @@ export class SwimLaneRenderer {
             description: '',  // Initialize with empty description
             position: {
                 x: x !== null ? x : 150 + lane.nodes.length * 200,
-                y: y !== null ? y : lane.y + 70
+                y: lane.y + 70  // Always place nodes at the center of their lane
             },
             color: this.getNodeColor(type),
             icon: this.getNodeIcon(type)

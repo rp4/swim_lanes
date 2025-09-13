@@ -180,17 +180,17 @@ export class DiagramControls {
             point.y = e.clientY;
             const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
 
-            const lanes = swimlanes.querySelectorAll('.swimlane');
-            lanes.forEach(lane => {
-                const rect = lane.querySelector('rect');
+            const laneGroups = swimlanes.querySelectorAll('.lane-group');
+            laneGroups.forEach(laneGroup => {
+                const rect = laneGroup.querySelector('.swimlane');
                 if (rect) {
                     const y = parseFloat(rect.getAttribute('y'));
                     const height = parseFloat(rect.getAttribute('height'));
 
                     if (svgPoint.y >= y && svgPoint.y <= y + height) {
-                        lane.classList.add('drop-target');
+                        rect.classList.add('drop-target');
                     } else {
-                        lane.classList.remove('drop-target');
+                        rect.classList.remove('drop-target');
                     }
                 }
             });
@@ -198,8 +198,8 @@ export class DiagramControls {
 
         svg.addEventListener('dragleave', (e) => {
             // Remove all drop target highlights
-            const lanes = swimlanes.querySelectorAll('.swimlane');
-            lanes.forEach(lane => lane.classList.remove('drop-target'));
+            const swimlanes = document.querySelectorAll('.swimlane');
+            swimlanes.forEach(lane => lane.classList.remove('drop-target'));
         });
 
         svg.addEventListener('drop', (e) => {
@@ -215,31 +215,33 @@ export class DiagramControls {
             const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
 
             // Find which lane was dropped on
-            const lanes = swimlanes.querySelectorAll('.swimlane');
-            let targetLane = null;
+            const laneGroups = swimlanes.querySelectorAll('.lane-group');
+            let targetLaneId = null;
 
-            lanes.forEach(lane => {
-                const rect = lane.querySelector('rect');
+            laneGroups.forEach(laneGroup => {
+                const rect = laneGroup.querySelector('.swimlane');
                 if (rect) {
                     const y = parseFloat(rect.getAttribute('y'));
                     const height = parseFloat(rect.getAttribute('height'));
 
                     if (svgPoint.y >= y && svgPoint.y <= y + height) {
-                        targetLane = lane;
+                        targetLaneId = laneGroup.getAttribute('data-lane-id');
                     }
                 }
-                lane.classList.remove('drop-target');
+                // Remove drop-target class from the swimlane rect
+                const swimlane = laneGroup.querySelector('.swimlane');
+                if (swimlane) swimlane.classList.remove('drop-target');
             });
 
-            if (targetLane && this.renderer.processData) {
-                const laneId = targetLane.getAttribute('data-lane-id');
+            if (targetLaneId && this.renderer.processData) {
+                const laneId = targetLaneId;
 
                 // Create the node at the drop position
                 const nodeText = this.getDefaultNodeText(nodeType);
                 this.editor.saveState();
 
-                // Add node with position
-                const node = this.renderer.addNode(laneId, nodeType, nodeText, svgPoint.x, svgPoint.y);
+                // Add node with x position only (y is determined by the lane)
+                const node = this.renderer.addNode(laneId, nodeType, nodeText, svgPoint.x);
                 this.showNotification(`${nodeType} node added to lane!`);
             }
         });
