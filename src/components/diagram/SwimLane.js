@@ -14,6 +14,94 @@ export class SwimLaneRenderer {
         this.setupArrowMarker();
     }
 
+    addNodeTooltip(nodeGroup, node) {
+        if (!node.description || node.description.trim() === '') return;
+
+        let tooltip = null;
+
+        const showTooltip = (e) => {
+            // Create tooltip if it doesn't exist
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.className = 'node-tooltip';
+                tooltip.textContent = node.description;
+                document.body.appendChild(tooltip);
+            }
+
+            // Position tooltip near the cursor
+            const x = e.clientX + 10;
+            const y = e.clientY - 30;
+
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+            tooltip.style.display = 'block';
+        };
+
+        const hideTooltip = () => {
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        };
+
+        const moveTooltip = (e) => {
+            if (tooltip && tooltip.style.display === 'block') {
+                tooltip.style.left = `${e.clientX + 10}px`;
+                tooltip.style.top = `${e.clientY - 30}px`;
+            }
+        };
+
+        nodeGroup.addEventListener('mouseenter', showTooltip);
+        nodeGroup.addEventListener('mouseleave', hideTooltip);
+        nodeGroup.addEventListener('mousemove', moveTooltip);
+
+        // Clean up tooltip when node is removed
+        const originalRemove = nodeGroup.remove;
+        nodeGroup.remove = function() {
+            if (tooltip) {
+                tooltip.remove();
+            }
+            originalRemove.call(this);
+        };
+    }
+
+    addConnectionAnchors(nodeGroup, x, y, nodeId) {
+        const anchors = [
+            { x: x, y: y - 35, position: 'top' },
+            { x: x + 35, y: y, position: 'right' },
+            { x: x, y: y + 35, position: 'bottom' },
+            { x: x - 35, y: y, position: 'left' }
+        ];
+
+        anchors.forEach(anchor => {
+            const anchorCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            anchorCircle.setAttribute('cx', anchor.x);
+            anchorCircle.setAttribute('cy', anchor.y);
+            anchorCircle.setAttribute('r', '8');
+            anchorCircle.classList.add('connection-anchor');
+            anchorCircle.setAttribute('data-node-id', nodeId);
+            anchorCircle.setAttribute('data-position', anchor.position);
+            anchorCircle.style.opacity = '0';
+            anchorCircle.style.fill = '#2196f3';
+            anchorCircle.style.stroke = 'white';
+            anchorCircle.style.strokeWidth = '2';
+            anchorCircle.style.cursor = 'crosshair';
+            anchorCircle.style.transition = 'opacity 0.2s';
+
+            nodeGroup.appendChild(anchorCircle);
+        });
+
+        // Show anchors on hover
+        nodeGroup.addEventListener('mouseenter', () => {
+            const anchors = nodeGroup.querySelectorAll('.connection-anchor');
+            anchors.forEach(a => a.style.opacity = '0.8');
+        });
+
+        nodeGroup.addEventListener('mouseleave', () => {
+            const anchors = nodeGroup.querySelectorAll('.connection-anchor');
+            anchors.forEach(a => a.style.opacity = '0');
+        });
+    }
+
     setupArrowMarker() {
         const defs = this.svg.querySelector('defs');
         const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
@@ -168,7 +256,13 @@ export class SwimLaneRenderer {
                 nodeGroup.appendChild(nodeShape);
                 nodeGroup.appendChild(nodeIcon);
                 nodeGroup.appendChild(nodeText);
-                
+
+                // Add connection anchors
+                this.addConnectionAnchors(nodeGroup, x, y, node.id);
+
+                // Add tooltip functionality
+                this.addNodeTooltip(nodeGroup, node);
+
                 this.nodesGroup.appendChild(nodeGroup);
             });
         });
@@ -195,6 +289,8 @@ export class SwimLaneRenderer {
                     label.setAttribute('x', midPoint.x);
                     label.setAttribute('y', midPoint.y - 5);
                     label.classList.add('connection-label');
+                    label.setAttribute('data-from', conn.from);
+                    label.setAttribute('data-to', conn.to);
                     label.textContent = conn.label;
                     this.connectionsGroup.appendChild(label);
                 }
@@ -272,20 +368,45 @@ export class SwimLaneRenderer {
     zoom(factor) {
         const viewBox = this.svg.getAttribute('viewBox') || '0 0 1440 800';
         const [x, y, width, height] = viewBox.split(' ').map(Number);
-        
+
         // Calculate the center point of the current view
         const centerX = x + width / 2;
         const centerY = y + height / 2;
-        
+
         // Calculate new dimensions
         const newWidth = width / factor;
         const newHeight = height / factor;
-        
+
         // Calculate new position to keep center point stable
         const newX = centerX - newWidth / 2;
         const newY = centerY - newHeight / 2;
-        
+
         this.svg.setAttribute('viewBox', `${newX} ${newY} ${newWidth} ${newHeight}`);
+    }
+
+    zoomAtPoint(factor, mouseX, mouseY) {
+        const viewBox = this.svg.getAttribute('viewBox') || '0 0 1440 800';
+        const [x, y, width, height] = viewBox.split(' ').map(Number);
+
+        // Convert mouse position to SVG coordinates
+        const svgX = x + (mouseX / this.svg.clientWidth) * width;
+        const svgY = y + (mouseY / this.svg.clientHeight) * height;
+
+        // Calculate new dimensions
+        const newWidth = width / factor;
+        const newHeight = height / factor;
+
+        // Calculate new position to keep mouse point stable
+        const newX = svgX - (mouseX / this.svg.clientWidth) * newWidth;
+        const newY = svgY - (mouseY / this.svg.clientHeight) * newHeight;
+
+        // Apply limits to prevent extreme zoom
+        const minWidth = 200;
+        const maxWidth = 10000;
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+            this.svg.setAttribute('viewBox', `${newX} ${newY} ${newWidth} ${newHeight}`);
+        }
     }
 
     pan(dx, dy) {
@@ -317,22 +438,23 @@ export class SwimLaneRenderer {
         return newLane;
     }
 
-    addNode(laneId, type = 'process', text = 'New Node') {
+    addNode(laneId, type = 'process', text = 'New Node', x = null, y = null) {
         const lane = this.findLane(laneId);
         if (!lane) return null;
-        
+
         const newNode = {
             id: `node_${Date.now()}`,
             text: text,
             type: type,
+            description: '',  // Initialize with empty description
             position: {
-                x: 150 + lane.nodes.length * 200,
-                y: lane.y + 70
+                x: x !== null ? x : 150 + lane.nodes.length * 200,
+                y: y !== null ? y : lane.y + 70
             },
             color: this.getNodeColor(type),
             icon: this.getNodeIcon(type)
         };
-        
+
         lane.nodes.push(newNode);
         this.render(this.processData);
         return newNode;
@@ -407,6 +529,34 @@ export class SwimLaneRenderer {
         this.processData.connections.push(connection);
         this.render(this.processData);
         return connection;
+    }
+
+    findConnection(fromId, toId) {
+        return this.processData.connections.find(
+            conn => conn.from === fromId && conn.to === toId
+        );
+    }
+
+    updateConnection(fromId, toId, newLabel) {
+        const connection = this.findConnection(fromId, toId);
+        if (connection) {
+            connection.label = newLabel;
+            this.render(this.processData);
+            return true;
+        }
+        return false;
+    }
+
+    deleteConnection(fromId, toId) {
+        const index = this.processData.connections.findIndex(
+            conn => conn.from === fromId && conn.to === toId
+        );
+        if (index !== -1) {
+            this.processData.connections.splice(index, 1);
+            this.render(this.processData);
+            return true;
+        }
+        return false;
     }
 
     getProcessData() {

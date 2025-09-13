@@ -9,61 +9,36 @@
     <div class="pool-container">
         <div class="main-pool">
             <div class="toolbar">
-                <div class="tool-group">
-                    <button id="uploadBtn" class="pool-btn">
-                        <span class="icon">📤</span>
-                        <span>Upload JSON</span>
-                    </button>
-                    <input type="file" id="fileInput" accept=".json" style="display: none;">
-                </div>
+                <input type="file" id="fileInput" accept=".json" style="display: none;">
 
                 <div class="tool-group">
                     <button id="addLaneBtn" class="pool-btn">
                         <span class="icon">➕</span>
                         <span>Add Lane</span>
                     </button>
-                    <button id="addNodeBtn" class="pool-btn">
-                        <span class="icon">🏊</span>
-                        <span>Add Node</span>
-                    </button>
-                    <button id="connectBtn" class="pool-btn">
-                        <span class="icon">🔗</span>
-                        <span>Connect</span>
-                    </button>
                 </div>
 
-                <div class="tool-group">
-                    <button id="zoomInBtn" class="pool-btn">
-                        <span class="icon">🔍+</span>
-                    </button>
-                    <button id="zoomOutBtn" class="pool-btn">
-                        <span class="icon">🔍-</span>
-                    </button>
-                    <button id="fitBtn" class="pool-btn">
-                        <span class="icon">⬜</span>
-                        <span>Fit</span>
-                    </button>
+                <div class="node-palette">
+                    <label>Drag Nodes:</label>
+                    <div class="draggable-node" data-node-type="process" draggable="true">
+                        <span class="icon">📋</span>
+                        <span>Step</span>
+                    </div>
+                    <div class="draggable-node" data-node-type="risk" draggable="true">
+                        <span class="icon">⚠️</span>
+                        <span>Risk</span>
+                    </div>
+                    <div class="draggable-node" data-node-type="control" draggable="true">
+                        <span class="icon">🛡️</span>
+                        <span>Control</span>
+                    </div>
                 </div>
 
-                <div class="tool-group">
-                    <button id="undoBtn" class="pool-btn">
-                        <span class="icon">↩️</span>
-                        <span>Undo</span>
-                    </button>
-                    <button id="redoBtn" class="pool-btn">
-                        <span class="icon">↪️</span>
-                        <span>Redo</span>
-                    </button>
-                </div>
 
                 <div class="tool-group">
                     <button id="downloadJsonBtn" class="pool-btn">
                         <span class="icon">💾</span>
                         <span>Save JSON</span>
-                    </button>
-                    <button id="downloadImageBtn" class="pool-btn">
-                        <span class="icon">🖼️</span>
-                        <span>Save Image</span>
                     </button>
                 </div>
             </div>
@@ -75,7 +50,13 @@
                         <span class="drop-icon">🏊‍♂️</span>
                         <h2>Dive In!</h2>
                         <p>Drop your process JSON here or click to upload</p>
-                        <button id="loadSampleBtn" class="pool-btn secondary">Load Sample Process</button>
+                        <div class="initial-controls">
+                            <button id="uploadInitialBtn" class="pool-btn">
+                                <span class="icon">📤</span>
+                                <span>Upload JSON</span>
+                            </button>
+                            <button id="loadSampleBtn" class="pool-btn secondary">Load Sample Process</button>
+                        </div>
                     </div>
                 </div>
 
@@ -150,8 +131,12 @@
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="nodeText">Node Text:</label>
+                        <label for="nodeText">Title:</label>
                         <input type="text" id="nodeText" class="pool-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeDescription">Description:</label>
+                        <textarea id="nodeDescription" class="pool-input" rows="3" style="resize: vertical;"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="nodeType">Node Type:</label>
@@ -194,6 +179,26 @@
                     <button id="saveLaneBtn" class="pool-btn">Save</button>
                     <button id="deleteLaneBtn" class="pool-btn danger">Delete</button>
                     <button id="cancelLaneBtn" class="pool-btn secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="edgeModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Connection</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edgeLabel">Connection Label:</label>
+                        <input type="text" id="edgeLabel" class="pool-input" placeholder="Enter connection label (optional)">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveEdgeBtn" class="pool-btn">Save</button>
+                    <button id="deleteEdgeBtn" class="pool-btn danger">Delete</button>
+                    <button id="cancelEdgeBtn" class="pool-btn secondary">Cancel</button>
                 </div>
             </div>
         </div>
