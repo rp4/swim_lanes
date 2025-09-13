@@ -9,6 +9,7 @@
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     <title>Swim Lane Diagram - Pool Planner</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏊</text></svg>">
 </head>
 <body>
     <div class="pool-container">
@@ -26,15 +27,12 @@
                 <div class="node-palette">
                     <label>Drag Nodes:</label>
                     <div class="draggable-node" data-node-type="process" draggable="true">
-                        <span class="icon">📋</span>
-                        <span>Step</span>
+                        <span>Process</span>
                     </div>
                     <div class="draggable-node" data-node-type="risk" draggable="true">
-                        <span class="icon">⚠️</span>
                         <span>Risk</span>
                     </div>
                     <div class="draggable-node" data-node-type="control" draggable="true">
-                        <span class="icon">🛡️</span>
                         <span>Control</span>
                     </div>
                 </div>
@@ -176,8 +174,9 @@
                         <input type="text" id="laneName" class="pool-input">
                     </div>
                     <div class="form-group">
-                        <label for="laneColor">Lane Color:</label>
-                        <input type="color" id="laneColor" value="#64b5f6">
+                        <label for="laneNumber">Lane Number:</label>
+                        <input type="number" id="laneNumber" class="pool-input" min="1" step="1">
+                        <small style="color: #666; display: block; margin-top: 4px;">Position in the diagram (1 = top)</small>
                     </div>
                 </div>
                 <div class="modal-footer">
