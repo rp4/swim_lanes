@@ -7,8 +7,37 @@ export class DiagramControls {
     this.parser = parser;
     this.exporter = exporter;
 
+    this.hideToolbarButtons();
     this.setupControls();
     this.setupDragAndDrop();
+  }
+
+  hideToolbarButtons() {
+    // Hide all toolbar buttons initially (on landing screen)
+    const toolGroups = document.querySelectorAll('.tool-group');
+    const nodePalette = document.querySelector('.node-palette');
+
+    toolGroups.forEach(group => {
+      group.style.display = 'none';
+    });
+
+    if (nodePalette) {
+      nodePalette.style.display = 'none';
+    }
+  }
+
+  showToolbarButtons() {
+    // Show toolbar buttons when a process is loaded
+    const toolGroups = document.querySelectorAll('.tool-group');
+    const nodePalette = document.querySelector('.node-palette');
+
+    toolGroups.forEach(group => {
+      group.style.display = 'flex';
+    });
+
+    if (nodePalette) {
+      nodePalette.style.display = 'flex';
+    }
   }
 
   setupControls() {
@@ -30,6 +59,10 @@ export class DiagramControls {
 
     document.getElementById('addLaneBtn').addEventListener('click', () => {
       this.addNewLane();
+    });
+
+    document.getElementById('addPhaseBtn').addEventListener('click', () => {
+      this.addNewPhase();
     });
 
     // Remove addNodeBtn listener since we're using drag and drop instead
@@ -304,6 +337,7 @@ export class DiagramControls {
     document.getElementById('dropZone').style.display = 'none';
     document.getElementById('swimlaneCanvas').style.display = 'block';
 
+    this.showToolbarButtons();
     this.renderer.render(processData);
     this.editor.saveState();
   }
@@ -314,6 +348,35 @@ export class DiagramControls {
       this.editor.saveState();
       const lane = this.renderer.addLane(name);
       NotificationService.success(`Lane "${name}" added!`);
+    }
+  }
+
+  addNewPhase() {
+    const name = prompt('Enter phase name (e.g., Planning, Execution, Review):');
+    if (name) {
+      // Ask for phase length in terms of number of circles (buoys)
+      const lengthInput = prompt('How many circles should this phase have? (3-20):', '10');
+      if (lengthInput && !isNaN(lengthInput)) {
+        const numCircles = Math.max(3, Math.min(20, parseInt(lengthInput)));
+
+        // Calculate position based on existing phases
+        const phases = this.renderer.processData?.phases || [];
+        let startPosition = 20; // Start from the left edge
+
+        if (phases.length > 0) {
+          // Find the maximum position (end of last phase)
+          const maxPosition = Math.max(...phases.map(p => p.position));
+          startPosition = maxPosition;
+        }
+
+        // Each circle is 40 pixels apart, so calculate the end position
+        const phaseLength = numCircles * 40;
+        const endPosition = startPosition + phaseLength; // No cap - let it extend as needed
+
+        this.editor.saveState();
+        const phase = this.renderer.addPhase(name, endPosition);
+        NotificationService.success(`Phase "${name}" added with ${numCircles} circles!`);
+      }
     }
   }
 

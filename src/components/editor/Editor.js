@@ -62,12 +62,7 @@ export class DiagramEditor {
       this.startDragging(e, target);
     }
 
-    const resizeHandle = e.target.closest('.resize-handle');
-    if (resizeHandle) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.showLaneReorderMenu(e, resizeHandle);
-    }
+    // Resize handle removed - no longer needed
   }
 
   handleAnchorClick(e) {
@@ -171,6 +166,15 @@ export class DiagramEditor {
     if (laneElement && !nodeElement) {
       const laneId = laneElement.parentElement.getAttribute('data-lane-id');
       this.editLane(laneId);
+      return;
+    }
+
+    const phaseElement = e.target.closest('.phase-label, .phase-divider-group');
+    if (phaseElement) {
+      const phaseGroup = phaseElement.closest('.phase-divider-group') || phaseElement;
+      const phaseId = phaseGroup.getAttribute('data-phase-id');
+      this.editPhase(phaseId);
+      return;
     }
   }
 
@@ -397,10 +401,15 @@ export class DiagramEditor {
 
     const modal = document.getElementById('laneModal');
     const laneName = document.getElementById('laneName');
-    const laneColor = document.getElementById('laneColor');
+    const laneNumber = document.getElementById('laneNumber');
 
     laneName.value = lane.name;
-    laneColor.value = lane.color;
+
+    // Set the current lane position (1-based for user)
+    const lanes = this.renderer.processData.lanes;
+    const currentPosition = lanes.findIndex(l => l.id === laneId) + 1;
+    laneNumber.value = currentPosition;
+    laneNumber.max = lanes.length;
 
     modal.style.display = 'flex';
     this.renderer.selectedLane = laneId;
@@ -413,7 +422,20 @@ export class DiagramEditor {
     const saveHandler = () => {
       this.saveState();
       lane.name = laneName.value;
-      lane.color = laneColor.value;
+      // Lane color is now automatically assigned, not user-editable
+
+      // Handle lane reordering
+      const newPosition = parseInt(laneNumber.value) - 1; // Convert to 0-based index
+      const currentPosition = lanes.findIndex(l => l.id === laneId);
+
+      if (newPosition !== currentPosition && newPosition >= 0 && newPosition < lanes.length) {
+        // Remove lane from current position
+        const [movedLane] = lanes.splice(currentPosition, 1);
+        // Insert at new position
+        lanes.splice(newPosition, 0, movedLane);
+        NotificationService.success(`Lane moved to position ${newPosition + 1}`);
+      }
+
       this.renderer.render(this.renderer.processData);
       modal.style.display = 'none';
       this.cleanup();
@@ -439,6 +461,91 @@ export class DiagramEditor {
       cancelBtn.removeEventListener('click', cancelHandler);
       closeBtn.removeEventListener('click', cancelHandler);
       this.renderer.selectedLane = null;
+    };
+
+    this.cleanup = cleanup;
+
+    saveBtn.addEventListener('click', saveHandler);
+    deleteBtn.addEventListener('click', deleteHandler);
+    cancelBtn.addEventListener('click', cancelHandler);
+    closeBtn.addEventListener('click', cancelHandler);
+  }
+
+  editPhase(phaseId) {
+    const phase = this.renderer.findPhase(phaseId);
+    if (!phase) {
+      return;
+    }
+
+    const modal = document.getElementById('phaseModal');
+    const phaseName = document.getElementById('phaseName');
+    const phaseLength = document.getElementById('phaseLength');
+    const phasePosition = document.getElementById('phasePosition'); // Hidden field
+
+    phaseName.value = phase.name;
+
+    // Calculate the phase length in circles based on its position and the previous phase
+    const phases = this.renderer.processData?.phases || [];
+    const sortedPhases = [...phases].sort((a, b) => a.position - b.position);
+    const phaseIndex = sortedPhases.findIndex(p => p.id === phaseId);
+
+    let phaseStart = 20; // Default start
+    if (phaseIndex > 0) {
+      phaseStart = sortedPhases[phaseIndex - 1].position;
+    }
+
+    const phaseLengthPixels = phase.position - phaseStart;
+    const numCircles = Math.max(3, Math.round(phaseLengthPixels / 40));
+
+    phaseLength.value = numCircles;
+    phasePosition.value = phase.position; // Store actual position
+
+    modal.style.display = 'flex';
+    this.renderer.selectedPhase = phaseId;
+
+    const saveBtn = document.getElementById('savePhaseBtn');
+    const deleteBtn = document.getElementById('deletePhaseBtn');
+    const cancelBtn = document.getElementById('cancelPhaseBtn');
+    const closeBtn = modal.querySelector('.close-btn');
+
+    const saveHandler = () => {
+      this.saveState();
+
+      // Calculate new position based on phase length
+      const newNumCircles = parseInt(phaseLength.value);
+      const phaseStart = phaseIndex > 0 ? sortedPhases[phaseIndex - 1].position : 20;
+      const newPosition = phaseStart + (newNumCircles * 40);
+
+      this.renderer.updatePhase(phaseId, {
+        name: phaseName.value,
+        position: newPosition,
+      });
+      modal.style.display = 'none';
+      this.cleanup();
+      NotificationService.success('Phase updated!');
+    };
+
+    const deleteHandler = () => {
+      if (confirm('Are you sure you want to delete this phase?')) {
+        this.saveState();
+        this.renderer.deletePhase(phaseId);
+        modal.style.display = 'none';
+        this.cleanup();
+        NotificationService.success('Phase deleted!');
+      }
+    };
+
+    const cancelHandler = () => {
+      modal.style.display = 'none';
+      this.cleanup();
+    };
+
+    const cleanup = () => {
+      saveBtn.removeEventListener('click', saveHandler);
+      deleteBtn.removeEventListener('click', deleteHandler);
+      cancelBtn.removeEventListener('click', cancelHandler);
+      closeBtn.removeEventListener('click', cancelHandler);
+      this.renderer.selectedPhase = null;
     };
 
     this.cleanup = cleanup;
@@ -505,145 +612,7 @@ export class DiagramEditor {
     closeBtn.addEventListener('click', cancelHandler);
   }
 
-  showLaneReorderMenu(e, handle) {
-    const laneId = handle.getAttribute('data-lane-id');
-    const lanes = this.renderer.processData.lanes;
-    const laneIndex = lanes.findIndex((l) => l.id === laneId);
-    const lane = lanes[laneIndex];
-
-    // Remove any existing menu
-    const existingMenu = document.querySelector('.lane-reorder-menu');
-    if (existingMenu) {
-      existingMenu.remove();
-    }
-
-    // Create context menu
-    const menu = document.createElement('div');
-    menu.className = 'lane-reorder-menu';
-    menu.style.cssText = `
-            position: fixed;
-            left: ${e.clientX}px;
-            top: ${e.clientY}px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            padding: 8px 0;
-            z-index: 10000;
-            min-width: 180px;
-        `;
-
-    const menuItems = [];
-
-    // Move to Top
-    if (laneIndex > 0) {
-      menuItems.push({
-        label: '⬆️ Move to Top',
-        action: () => this.moveLaneToPosition(laneIndex, 0),
-      });
-    }
-
-    // Move Up
-    if (laneIndex > 0) {
-      menuItems.push({
-        label: '↑ Move Up',
-        action: () => this.moveLaneToPosition(laneIndex, laneIndex - 1),
-      });
-    }
-
-    // Move Down
-    if (laneIndex < lanes.length - 1) {
-      menuItems.push({
-        label: '↓ Move Down',
-        action: () => this.moveLaneToPosition(laneIndex, laneIndex + 1),
-      });
-    }
-
-    // Move to Bottom
-    if (laneIndex < lanes.length - 1) {
-      menuItems.push({
-        label: '⬇️ Move to Bottom',
-        action: () => this.moveLaneToPosition(laneIndex, lanes.length - 1),
-      });
-    }
-
-    // If no movement options available
-    if (menuItems.length === 0) {
-      menuItems.push({
-        label: 'No movement options',
-        action: null,
-        disabled: true,
-      });
-    }
-
-    // Create menu items
-    menuItems.forEach((item) => {
-      const menuItem = document.createElement('div');
-      menuItem.textContent = item.label;
-      menuItem.style.cssText = `
-                padding: 8px 16px;
-                cursor: ${item.disabled ? 'not-allowed' : 'pointer'};
-                color: ${item.disabled ? '#999' : '#333'};
-                font-size: 14px;
-                transition: background-color 0.2s;
-            `;
-
-      if (!item.disabled) {
-        menuItem.addEventListener('mouseover', () => {
-          menuItem.style.backgroundColor = '#f0f0f0';
-        });
-        menuItem.addEventListener('mouseout', () => {
-          menuItem.style.backgroundColor = 'transparent';
-        });
-        menuItem.addEventListener('click', () => {
-          menu.remove();
-          if (item.action) {
-            item.action();
-          }
-        });
-      }
-
-      menu.appendChild(menuItem);
-    });
-
-    // Add menu to document
-    document.body.appendChild(menu);
-
-    // Close menu when clicking outside
-    const closeMenu = (event) => {
-      if (!menu.contains(event.target)) {
-        menu.remove();
-        document.removeEventListener('click', closeMenu);
-      }
-    };
-
-    // Delay adding the close listener to prevent immediate closure
-    setTimeout(() => {
-      document.addEventListener('click', closeMenu);
-    }, 0);
-  }
-
-  moveLaneToPosition(fromIndex, toIndex) {
-    if (fromIndex === toIndex) {
-      return;
-    }
-
-    this.saveState();
-    const lanes = this.renderer.processData.lanes;
-    const [movedLane] = lanes.splice(fromIndex, 1);
-
-    // Adjust toIndex if necessary after removal
-    const adjustedToIndex = fromIndex < toIndex ? toIndex : toIndex;
-    lanes.splice(adjustedToIndex, 0, movedLane);
-
-    // Re-render to update the display
-    this.renderer.render(this.renderer.processData);
-
-    // Show notification
-    const position =
-      toIndex === 0 ? 'top' : toIndex === lanes.length - 1 ? 'bottom' : `position ${toIndex + 1}`;
-    NotificationService.success(`Lane "${movedLane.name}" moved to ${position}`);
-  }
+  // Lane reorder menu methods removed - now handled through Lane Number field in edit form
 
   saveState() {
     const state = JSON.stringify(this.renderer.processData);

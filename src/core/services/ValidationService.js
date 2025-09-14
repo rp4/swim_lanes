@@ -8,6 +8,7 @@ export class ValidationService {
   static MAX_LANES = 20;
   static MAX_NODES_PER_LANE = 50;
   static MAX_CONNECTIONS = 200;
+  static MAX_PHASES = 20;
 
   /**
    * Sanitize text content to prevent XSS
@@ -97,6 +98,37 @@ export class ValidationService {
 
       return sanitizedLane;
     });
+
+    // Validate phases
+    if (data.phases) {
+      if (!Array.isArray(data.phases)) {
+        throw new Error('Phases must be an array');
+      }
+
+      if (data.phases.length > this.MAX_PHASES) {
+        throw new Error(`Too many phases: maximum is ${this.MAX_PHASES}`);
+      }
+
+      data.phases = data.phases.map((phase, index) => {
+        if (!phase || typeof phase !== 'object') {
+          throw new Error(`Invalid phase at index ${index}`);
+        }
+
+        // Validate required fields
+        if (!phase.id || typeof phase.id !== 'string') {
+          throw new Error(`Phase at index ${index} missing valid id`);
+        }
+
+        // Sanitize phase data
+        return {
+          id: this.sanitizeId(phase.id),
+          name: this.sanitizeText(phase.name || `Phase ${index + 1}`),
+          position: this.sanitizeNumber(phase.position, 400, 20, 10000), // Min 20, Max 10000, Default 400
+        };
+      });
+    } else {
+      data.phases = [];
+    }
 
     // Validate connections
     if (data.connections) {

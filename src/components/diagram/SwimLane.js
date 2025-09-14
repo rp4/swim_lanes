@@ -4,6 +4,7 @@ export class SwimLaneRenderer {
   constructor(svgElement) {
     this.svg = svgElement;
     this.swimlanesGroup = this.svg.querySelector('#swimlanes');
+    this.phasesGroup = this.svg.querySelector('#phases');
     this.nodesGroup = this.svg.querySelector('#nodes');
     this.connectionsGroup = this.svg.querySelector('#connections');
     this.scale = 1;
@@ -12,6 +13,7 @@ export class SwimLaneRenderer {
     this.processData = null;
     this.selectedNode = null;
     this.selectedLane = null;
+    this.selectedPhase = null;
 
     // Arrow marker removed - edges will display without arrows
   }
@@ -106,20 +108,17 @@ export class SwimLaneRenderer {
 
   // Arrow marker method removed - edges will display without arrows
 
-  createLaneDivider(laneGroup, yPosition) {
-    const dividerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    dividerLine.setAttribute('x1', '20');
-    dividerLine.setAttribute('y1', yPosition);
-    dividerLine.setAttribute('x2', '1420');
-    dividerLine.setAttribute('y2', yPosition);
-    dividerLine.classList.add('lane-divider');
-    laneGroup.appendChild(dividerLine);
-  }
+  // Lane divider method removed - now handled in renderPhases()
 
   render(processData) {
     this.processData = processData;
+    // Initialize phases array if not present
+    if (!this.processData.phases) {
+      this.processData.phases = [];
+    }
     this.clear();
     this.renderSwimLanes();
+    this.renderPhases();
     this.renderNodes();
     this.renderConnections();
     this.fitToScreen();
@@ -129,6 +128,9 @@ export class SwimLaneRenderer {
     // Safe DOM manipulation to prevent XSS
     while (this.swimlanesGroup.firstChild) {
       this.swimlanesGroup.removeChild(this.swimlanesGroup.firstChild);
+    }
+    while (this.phasesGroup.firstChild) {
+      this.phasesGroup.removeChild(this.phasesGroup.firstChild);
     }
     while (this.nodesGroup.firstChild) {
       this.nodesGroup.removeChild(this.nodesGroup.firstChild);
@@ -141,6 +143,9 @@ export class SwimLaneRenderer {
   renderSwimLanes() {
     let currentY = 50;
 
+    // Calculate total width based on phases
+    const totalWidth = this.calculateTotalWidth();
+
     this.processData.lanes.forEach((lane, index) => {
       const laneGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       laneGroup.setAttribute('data-lane-id', lane.id);
@@ -149,7 +154,7 @@ export class SwimLaneRenderer {
       const laneRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       laneRect.setAttribute('x', '20');
       laneRect.setAttribute('y', currentY);
-      laneRect.setAttribute('width', '1400');
+      laneRect.setAttribute('width', totalWidth - 40); // Leave 20px margin on each side
       laneRect.setAttribute('height', lane.height || 140);
       laneRect.setAttribute('rx', '2');
       laneRect.setAttribute('ry', '2');
@@ -161,42 +166,10 @@ export class SwimLaneRenderer {
       laneLabel.classList.add('lane-label');
       laneLabel.textContent = lane.name;
 
-      if (index > 0) {
-        // Create lane divider
-        this.createLaneDivider(laneGroup, currentY - 5);
-      }
-
-      // Create reorder menu button (three dots)
-      const reorderButton = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      reorderButton.classList.add('resize-handle');
-      reorderButton.setAttribute('data-lane-id', lane.id);
-
-      // Button background
-      const buttonBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      buttonBg.setAttribute('x', '1405');
-      buttonBg.setAttribute('y', currentY + (lane.height || 140) / 2 - 15);
-      buttonBg.setAttribute('width', '30');
-      buttonBg.setAttribute('height', '30');
-      buttonBg.setAttribute('rx', '4');
-      buttonBg.classList.add('resize-handle');
-      buttonBg.setAttribute('data-lane-id', lane.id);
-
-      // Three dots
-      for (let i = 0; i < 3; i++) {
-        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        dot.setAttribute('cx', '1420');
-        dot.setAttribute('cy', currentY + (lane.height || 140) / 2 - 5 + i * 10);
-        dot.setAttribute('r', '2');
-        dot.setAttribute('fill', '#666');
-        dot.style.pointerEvents = 'none';
-        reorderButton.appendChild(dot);
-      }
-
-      reorderButton.insertBefore(buttonBg, reorderButton.firstChild);
+      // Note: Lane dividers are now handled in renderPhases()
 
       laneGroup.appendChild(laneRect);
       laneGroup.appendChild(laneLabel);
-      laneGroup.appendChild(reorderButton);
 
       this.swimlanesGroup.appendChild(laneGroup);
 
@@ -204,7 +177,7 @@ export class SwimLaneRenderer {
       currentY += (lane.height || 140) + 10;
     });
 
-    this.svg.setAttribute('viewBox', `0 0 1440 ${currentY + 50}`);
+    this.svg.setAttribute('viewBox', `0 0 ${totalWidth} ${currentY + 50}`);
   }
 
   renderNodes() {
@@ -236,6 +209,15 @@ export class SwimLaneRenderer {
             nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
             const points = `${x},${y - 35} ${x + 35},${y} ${x},${y + 35} ${x - 35},${y}`;
             nodeShape.setAttribute('points', points);
+            break;
+          case 'risk':
+            // Risk nodes have right angle corners
+            nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            nodeShape.setAttribute('x', x - 50);
+            nodeShape.setAttribute('y', y - 25);
+            nodeShape.setAttribute('width', '100');
+            nodeShape.setAttribute('height', '50');
+            // No rx/ry attributes for right angles
             break;
           default:
             nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -405,8 +387,9 @@ export class SwimLaneRenderer {
   }
 
   fitToScreen() {
-    const bbox = this.svg.getBBox();
-    const viewBox = `${bbox.x - 20} ${bbox.y - 20} ${bbox.width + 40} ${bbox.height + 40}`;
+    const totalWidth = this.calculateTotalWidth();
+    const totalHeight = this.calculateTotalHeight();
+    const viewBox = `0 0 ${totalWidth} ${totalHeight}`;
     this.svg.setAttribute('viewBox', viewBox);
   }
 
@@ -588,6 +571,183 @@ export class SwimLaneRenderer {
       return true;
     }
     return false;
+  }
+
+  renderPhases() {
+    if (!this.processData.lanes || this.processData.lanes.length < 2) {
+      return; // Need at least 2 lanes to have dividers between them
+    }
+
+    // Define phase colors that alternate
+    const phaseColors = ['#FF5722', '#2196F3']; // Red, Blue
+
+    // Sort phases by position for proper color assignment
+    const sortedPhases = this.processData.phases ?
+      [...this.processData.phases].sort((a, b) => a.position - b.position) : [];
+
+    // Create horizontal dividers between lanes
+    this.processData.lanes.forEach((lane, index) => {
+      if (index === 0) return; // Skip first lane (no divider above it)
+
+      const prevLane = this.processData.lanes[index - 1];
+      const dividerY = prevLane.y + (prevLane.height || 140) + 5; // Position between lanes
+
+      // Create a group for this divider
+      const dividerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      dividerGroup.classList.add('lane-divider-group');
+      dividerGroup.setAttribute('data-divider-index', index);
+
+      // If no phases defined, don't create dividers
+      if (sortedPhases.length === 0) {
+        return;
+      }
+
+      // Create segmented divider based on phases
+      let startX = 20;
+      const totalWidth = this.calculateTotalWidth();
+      const endX = totalWidth - 20; // Match the lane width
+
+      sortedPhases.forEach((phase, phaseIndex) => {
+        const phaseEndX = phase.position;
+        const segmentEndX = Math.min(phaseEndX, endX);
+
+        if (startX < segmentEndX) {
+          // Create segment for this phase
+          const segment = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          segment.setAttribute('x1', startX);
+          segment.setAttribute('y1', dividerY);
+          segment.setAttribute('x2', segmentEndX);
+          segment.setAttribute('y2', dividerY);
+          segment.classList.add('phase-segment');
+
+          // Assign color based on phase index (alternates red/blue)
+          const colorIndex = phaseIndex % phaseColors.length;
+          segment.style.stroke = phaseColors[colorIndex];
+          segment.style.strokeWidth = '5';
+          segment.style.strokeDasharray = '15, 5';
+          segment.style.opacity = '0.8';
+
+          dividerGroup.appendChild(segment);
+
+          // Add buoys along this segment
+          const segmentLength = segmentEndX - startX;
+          const numBuoys = Math.floor(segmentLength / 40);
+          for (let i = 0; i <= numBuoys; i++) {
+            const buoyX = startX + (i * 40);
+            if (buoyX <= segmentEndX) {
+              const buoy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              buoy.setAttribute('cx', buoyX);
+              buoy.setAttribute('cy', dividerY);
+              buoy.setAttribute('r', '6');
+              buoy.style.fill = phaseColors[colorIndex];
+              buoy.style.stroke = 'white';
+              buoy.style.strokeWidth = '2';
+              dividerGroup.appendChild(buoy);
+            }
+          }
+        }
+
+        startX = segmentEndX;
+      });
+
+      // No final segment - pool ends at last phase
+
+      this.phasesGroup.appendChild(dividerGroup);
+    });
+
+    // Add phase labels at the top
+    if (sortedPhases.length > 0) {
+      sortedPhases.forEach((phase, index) => {
+        const phaseLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const labelX = index === 0 ?
+          (20 + phase.position) / 2 :
+          (sortedPhases[index - 1].position + phase.position) / 2;
+
+        phaseLabel.setAttribute('x', labelX);
+        phaseLabel.setAttribute('y', '30');
+        phaseLabel.setAttribute('text-anchor', 'middle');
+        phaseLabel.classList.add('phase-label');
+        phaseLabel.style.fontSize = '14px';
+        phaseLabel.style.fontWeight = 'bold';
+        phaseLabel.style.fill = phaseColors[index % phaseColors.length];
+        phaseLabel.textContent = phase.name;
+        phaseLabel.setAttribute('data-phase-id', phase.id);
+
+        this.phasesGroup.appendChild(phaseLabel);
+      });
+
+      // No 'continues' label - pool ends at last phase
+    }
+  }
+
+  calculateTotalHeight() {
+    let totalHeight = 50; // Starting Y position
+    this.processData.lanes.forEach((lane) => {
+      totalHeight += (lane.height || 140) + 10;
+    });
+    return totalHeight;
+  }
+
+  calculateTotalWidth() {
+    // Calculate width based on total phase positions
+    if (!this.processData.phases || this.processData.phases.length === 0) {
+      return 1440; // Default width if no phases
+    }
+
+    // Find the maximum phase position
+    const maxPosition = Math.max(...this.processData.phases.map(p => p.position));
+    // Add some padding
+    return maxPosition + 40;
+  }
+
+  addPhase(name, position) {
+    if (!this.processData.phases) {
+      this.processData.phases = [];
+    }
+
+    // If no position provided, calculate based on existing phases
+    let finalPosition = position;
+    if (!finalPosition) {
+      if (this.processData.phases.length === 0) {
+        finalPosition = 400; // Default for first phase (10 circles)
+      } else {
+        // Find the maximum position and add 400 (10 circles default)
+        const maxPosition = Math.max(...this.processData.phases.map(p => p.position));
+        finalPosition = maxPosition + 400; // No cap - extends as needed
+      }
+    }
+
+    const newPhase = {
+      id: `phase_${Date.now()}`,
+      name: name || `Phase ${this.processData.phases.length + 1}`,
+      position: finalPosition,
+    };
+
+    this.processData.phases.push(newPhase);
+    this.render(this.processData);
+    return newPhase;
+  }
+
+  updatePhase(phaseId, updates) {
+    const phase = this.processData.phases.find((p) => p.id === phaseId);
+    if (phase) {
+      Object.assign(phase, updates);
+      this.render(this.processData);
+    }
+  }
+
+  deletePhase(phaseId) {
+    const index = this.processData.phases.findIndex((p) => p.id === phaseId);
+    if (index !== -1) {
+      this.processData.phases.splice(index, 1);
+      this.render(this.processData);
+      return true;
+    }
+    return false;
+  }
+
+  findPhase(phaseId) {
+    return this.processData.phases.find((p) => p.id === phaseId);
   }
 
   getProcessData() {

@@ -33,6 +33,7 @@ export class ProcessParser {
       title: sanitizedData.title,
       lanes: sanitizedData.lanes,
       connections: sanitizedData.connections,
+      phases: sanitizedData.phases || [],
       metadata: jsonData.metadata || {},
     };
 
@@ -107,6 +108,28 @@ export class ProcessParser {
   generateSampleProcess() {
     return {
       title: 'Sample Swimming Pool Maintenance Process',
+      phases: [
+        {
+          id: 'phase_1',
+          name: 'Phase 1: Discovery',
+          position: 400, // 10 circles (400/40)
+        },
+        {
+          id: 'phase_2',
+          name: 'Phase 2: Assessment',
+          position: 800, // 10 more circles (400/40)
+        },
+        {
+          id: 'phase_3',
+          name: 'Phase 3: Resolution',
+          position: 1200, // 10 more circles (400/40)
+        },
+        {
+          id: 'phase_4',
+          name: 'Phase 4: Closure',
+          position: 1600, // 10 more circles (400/40) - Total: 40 circles
+        },
+      ],
       lanes: [
         {
           id: 'lane_1',

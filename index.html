@@ -22,6 +22,10 @@
                         <span class="icon">➕</span>
                         <span>Add Lane</span>
                     </button>
+                    <button id="addPhaseBtn" class="pool-btn">
+                        <span class="icon">🏊</span>
+                        <span>Add Phase</span>
+                    </button>
                 </div>
 
                 <div class="node-palette">
@@ -119,6 +123,7 @@
                             </marker>
                         </defs>
                         <g id="swimlanes"></g>
+                        <g id="phases"></g>
                         <g id="connections"></g>
                         <g id="nodes"></g>
                     </svg>
@@ -203,6 +208,37 @@
                     <button id="saveEdgeBtn" class="pool-btn">Save</button>
                     <button id="deleteEdgeBtn" class="pool-btn danger">Delete</button>
                     <button id="cancelEdgeBtn" class="pool-btn secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="phaseModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Phase</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="phaseName">Phase Name:</label>
+                        <input type="text" id="phaseName" class="pool-input" placeholder="e.g., Planning, Execution, Review">
+                    </div>
+                    <div class="form-group">
+                        <label for="phaseLength">Phase Length (circles):</label>
+                        <input type="number" id="phaseLength" class="pool-input" min="3" max="20" step="1" value="10">
+                        <small style="color: #666; display: block; margin-top: 4px;">Number of circles in this phase section</small>
+                    </div>
+                    <div class="form-group">
+                        <small style="color: #666; display: block; margin-top: 4px;">
+                            Note: Phase colors automatically alternate between Red and Blue based on their order
+                        </small>
+                    </div>
+                    <input type="hidden" id="phasePosition" value="400">
+                </div>
+                <div class="modal-footer">
+                    <button id="savePhaseBtn" class="pool-btn">Save</button>
+                    <button id="deletePhaseBtn" class="pool-btn danger">Delete</button>
+                    <button id="cancelPhaseBtn" class="pool-btn secondary">Cancel</button>
                 </div>
             </div>
         </div>

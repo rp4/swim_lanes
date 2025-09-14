@@ -15,6 +15,11 @@ export class ProcessExporter {
   exportToJSON(processData) {
     const exportData = {
       title: processData.title,
+      phases: processData.phases ? processData.phases.map((phase) => ({
+        id: phase.id,
+        name: phase.name,
+        position: phase.position,
+      })) : [],
       lanes: processData.lanes.map((lane) => ({
         id: lane.id,
         name: lane.name,
@@ -24,6 +29,7 @@ export class ProcessExporter {
           id: node.id,
           text: node.text,
           type: node.type,
+          description: node.description || '',
           position: {
             x: node.position.x,
             y: node.position.y,
