@@ -47,6 +47,34 @@ class SwimLaneApp {
     if (!this.landingPage) {
       const fileInput = document.getElementById('fileInput');
 
+      // Set up the hidden file input handler
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            try {
+              const jsonData = JSON.parse(evt.target.result);
+              this.loadDiagram(jsonData);
+              if (this.landingPage) {
+                this.landingPage.remove();
+              }
+              document.querySelector('#dropZone').style.display = 'none';
+              document.querySelector('#swimlaneCanvas').style.display = 'block';
+              if (this.controls) {
+                this.controls.showToolbarButtons();
+              }
+            } catch (error) {
+              console.error('Error parsing JSON:', error);
+              alert('Invalid JSON file: ' + error.message);
+            }
+          };
+          reader.readAsText(file);
+          // Reset the input so the same file can be selected again
+          e.target.value = '';
+        }
+      });
+
       this.landingPage = new LandingPage({
         icon: '🏊',
         title: 'Swim Lane Diagram',
@@ -173,8 +201,11 @@ class SwimLaneApp {
   loadDiagram(jsonData) {
     this.initializeDiagram();
     if (this.parser && this.renderer) {
-      const processData = this.parser.parse(JSON.stringify(jsonData));
+      const processData = this.parser.parse(jsonData);
       this.renderer.render(processData);
+      if (this.controls) {
+        this.controls.showToolbarButtons();
+      }
     }
   }
 

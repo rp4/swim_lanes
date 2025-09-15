@@ -1,26 +1,152 @@
 export class LandingPage {
   constructor(config = {}) {
-    this.config = {
-      icon: '🏊',
-      title: 'Swim Lane Diagram',
-      subtitle: 'Pool Planner',
-      showInfoButton: false,
-      infoPopup: null,
-      actions: [],
-      fileUpload: null,
-      footerLinks: [],
-      className: '',
-      containerClassName: '',
-      ...config
-    };
+    // Support both direct config and callback-based initialization
+    if (typeof config === 'function' || (arguments.length === 2 && typeof arguments[0] === 'function')) {
+      // Legacy SwimLaneLandingPage compatibility mode
+      const onStart = arguments[0];
+      const onFileLoad = arguments[1];
+      this.config = this.getLegacyConfig(onStart, onFileLoad);
+    } else {
+      this.config = {
+        icon: '🏊',
+        title: 'Swim Lane Diagram',
+        subtitle: 'Pool Planner',
+        showInfoButton: false,
+        infoPopup: null,
+        actions: [],
+        fileUpload: null,
+        footerLinks: [],
+        className: '',
+        containerClassName: '',
+        ...config
+      };
+    }
 
     this.isDragging = false;
     this.showPrivacyInfo = false;
     this.element = null;
+    this.container = null;
+  }
+
+  // Legacy compatibility method to create config from callbacks
+  getLegacyConfig(onStart, onFileLoad) {
+    return {
+      icon: '🏊',
+      title: 'SwimLanes',
+      subtitle: 'Interactive Process Diagram Visualizer',
+      showInfoButton: true,
+      infoPopup: {
+        title: 'Your Privacy Matters',
+        icon: this.createShieldIcon(),
+        sections: [
+          {
+            icon: this.createLockIcon(),
+            title: 'Local Processing Only',
+            content: 'All processing happens in your browser. Your diagrams never leave your device unless you explicitly export them.'
+          },
+          {
+            icon: this.createDatabaseIcon(),
+            title: 'No Data Collection',
+            bullets: [
+              'No tracking or analytics',
+              'No cookies or local storage',
+              'No server uploads',
+              'Complete privacy'
+            ]
+          }
+        ]
+      },
+      actions: [
+        {
+          label: 'Start New Diagram',
+          onClick: onStart,
+          variant: 'primary',
+          icon: this.createFileTextIcon()
+        },
+        {
+          label: 'Load from File',
+          variant: 'secondary',
+          icon: this.createUploadIcon()
+        }
+      ],
+      fileUpload: {
+        accept: '.json',
+        onFileSelect: (file) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const jsonData = JSON.parse(e.target.result);
+              if (onFileLoad) {
+                onFileLoad(jsonData);
+              }
+            } catch (error) {
+              alert('Invalid JSON file. Please select a valid swim lane diagram file.');
+            }
+          };
+          reader.readAsText(file);
+        },
+        dragDropEnabled: true
+      },
+      footerLinks: [
+        {
+          icon: this.createGithubIcon(),
+          href: 'https://github.com/yourusername/swimlanes',
+          title: 'View on GitHub'
+        }
+      ],
+      containerClassName: 'bg-white/90 backdrop-blur-md'
+    };
+  }
+
+  // Icon creation methods for legacy compatibility
+  createShieldIcon() {
+    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>`;
+  }
+
+  createLockIcon() {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0110 0v4"/>
+    </svg>`;
+  }
+
+  createDatabaseIcon() {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+    </svg>`;
+  }
+
+  createFileTextIcon() {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>`;
+  }
+
+  createUploadIcon() {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>`;
+  }
+
+  createGithubIcon() {
+    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+    </svg>`;
   }
 
   render() {
     const container = document.createElement('div');
+    container.id = 'landing-page-container';
     container.className = `landing-page-wrapper ${this.config.className}`;
     container.style.cssText = `
       position: fixed;
@@ -33,6 +159,7 @@ export class LandingPage {
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      backdrop-filter: blur(2px);
     `;
 
     const innerContainer = document.createElement('div');
@@ -98,7 +225,7 @@ export class LandingPage {
         ${this.config.actions.length > 0 ? `
           <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap;">
             ${this.config.actions.map((action, idx) => {
-              const isFileUploadButton = action.label === 'Choose File' && this.config.fileUpload;
+              const isFileUploadButton = (action.label === 'Choose File' || action.label === 'Load from File') && this.config.fileUpload;
               const buttonStyles = this.getButtonStyles(action.variant);
 
               if (isFileUploadButton) {
@@ -190,6 +317,7 @@ export class LandingPage {
     this.setupEventListeners(container, innerContainer);
 
     this.element = container;
+    this.container = container;
     return container;
   }
 
@@ -353,7 +481,10 @@ export class LandingPage {
   }
 
   show() {
-    if (this.element) {
+    if (!this.element) {
+      this.element = this.render();
+      document.body.appendChild(this.element);
+    } else if (this.element.style.display === 'none') {
       this.element.style.display = 'flex';
     }
   }
@@ -362,12 +493,14 @@ export class LandingPage {
     if (this.element) {
       this.element.style.display = 'none';
     }
+    this.remove();
   }
 
   remove() {
-    if (this.element) {
-      this.element.remove();
-      this.element = null;
+    if (this.element && this.element.parentNode) {
+      this.element.parentNode.removeChild(this.element);
     }
+    this.element = null;
+    this.container = null;
   }
 }
