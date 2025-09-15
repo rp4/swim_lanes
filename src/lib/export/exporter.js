@@ -34,7 +34,7 @@ export class ProcessExporter {
             x: node.position.x,
             y: node.position.y,
           },
-          color: node.color,
+          // Don't export color - it should be determined by type
           metadata: node.metadata || {},
         })),
       })),

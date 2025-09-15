@@ -309,6 +309,10 @@ export class LandingPage {
             ${this.config.footerLinks.map(link => {
               // Check if icon is an emoji (not SVG)
               const isEmoji = !link.icon.includes('<svg');
+              // For SVGs, wrap in a larger container
+              const iconContent = link.icon.includes('<svg')
+                ? link.icon.replace('width="24" height="24"', 'width="32" height="32"')
+                : link.icon;
               return `
                 <a href="${link.href}"
                   target="${link.target || '_blank'}"
@@ -317,13 +321,14 @@ export class LandingPage {
                     color: #4b5563;
                     transition: all 0.3s;
                     display: inline-block;
-                    ${isEmoji ? 'font-size: 24px; line-height: 1;' : ''}
+                    text-decoration: none;
+                    ${isEmoji ? 'font-size: 32px; line-height: 1;' : ''}
                   "
                   title="${link.title || ''}"
                   onmouseover="this.style.color='#1f2937'; this.style.transform='scale(1.1)'"
                   onmouseout="this.style.color='#4b5563'; this.style.transform='scale(1)'"
                 >
-                  ${link.icon}
+                  ${iconContent}
                 </a>
               `;
             }).join('')}

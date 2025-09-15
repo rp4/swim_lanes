@@ -6,6 +6,15 @@ export class ProcessParser {
     this.defaultNodeTypes = ['start', 'process', 'decision', 'end'];
   }
 
+  parse(jsonString) {
+    try {
+      const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+      return this.parseProcess(jsonData);
+    } catch (error) {
+      throw new Error(`Failed to parse JSON: ${error.message}`);
+    }
+  }
+
   validateJSON(jsonData) {
     try {
       // Use ValidationService for comprehensive validation and sanitization
@@ -49,9 +58,8 @@ export class ProcessParser {
       // Enhance nodes with icons and colors from theme
       lane.nodes.forEach((node) => {
         node.icon = Theme.nodes.getIcon(node.type);
-        if (!node.color) {
-          node.color = Theme.nodes.getColor(node.type);
-        }
+        // Always use theme color based on node type, ignore imported color
+        node.color = Theme.nodes.getColor(node.type);
       });
     });
 

@@ -502,6 +502,12 @@ export class SwimLaneRenderer {
     const node = this.findNode(nodeId);
     if (node) {
       Object.assign(node, updates);
+      // Always set color based on type
+      if (updates.type) {
+        node.color = this.getNodeColor(updates.type);
+      } else {
+        node.color = this.getNodeColor(node.type);
+      }
       this.render(this.processData);
     }
   }

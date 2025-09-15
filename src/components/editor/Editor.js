@@ -335,12 +335,10 @@ export class DiagramEditor {
     const nodeText = document.getElementById('nodeText');
     const nodeDescription = document.getElementById('nodeDescription');
     const nodeType = document.getElementById('nodeType');
-    const nodeColor = document.getElementById('nodeColor');
 
     nodeText.value = node.text;
     nodeDescription.value = node.description || '';
     nodeType.value = node.type;
-    nodeColor.value = node.color || this.renderer.getNodeColor(node.type);
 
     modal.style.display = 'flex';
     this.renderer.selectedNode = nodeId;
@@ -356,7 +354,8 @@ export class DiagramEditor {
         text: nodeText.value,
         description: nodeDescription.value,
         type: nodeType.value,
-        color: nodeColor.value,
+        // Don't save color - it should be determined by type
+        // color: nodeColor.value,
         icon: this.renderer.getNodeIcon(nodeType.value),
       });
       modal.style.display = 'none';
