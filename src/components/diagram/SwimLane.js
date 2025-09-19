@@ -90,47 +90,36 @@ export class SwimLaneRenderer {
       badgeGroup.dataset.riskId = risk.id;
 
       // Position badges in a row above the node
-      const badgeSpacing = 25;
+      const badgeSpacing = 30;
       const startX = x - ((node.risks.length - 1) * badgeSpacing) / 2;
       const badgeX = startX + (index * badgeSpacing);
       const badgeY = y - 35;
 
-      // Create circle background for badge
-      const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      badgeCircle.setAttribute('cx', badgeX);
-      badgeCircle.setAttribute('cy', badgeY);
-      badgeCircle.setAttribute('r', '10');
-      badgeCircle.setAttribute('fill', '#ffffff');
-      badgeCircle.setAttribute('stroke', hasControl ? '#ff9800' : '#f44336');
-      badgeCircle.setAttribute('stroke-width', '2');
-
-      // Create warning triangle path
+      // Create larger filled warning triangle using SVG path
       const warningPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const trianglePath = `M ${badgeX} ${badgeY - 5} L ${badgeX - 4} ${badgeY + 3} L ${badgeX + 4} ${badgeY + 3} Z`;
+      // Triangle path: move to top, line to bottom-right, line to bottom-left, close
+      const size = 12; // Half-width/height of triangle
+      const trianglePath = `M ${badgeX} ${badgeY - size} L ${badgeX + size} ${badgeY + size} L ${badgeX - size} ${badgeY + size} Z`;
       warningPath.setAttribute('d', trianglePath);
-      warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336');
+      warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
 
-      // Create exclamation mark
-      const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      exclamation.setAttribute('x', badgeX);
-      exclamation.setAttribute('y', badgeY + 1);
-      exclamation.setAttribute('text-anchor', 'middle');
-      exclamation.setAttribute('fill', '#ffffff');
-      exclamation.setAttribute('font-size', '8');
-      exclamation.setAttribute('font-weight', 'bold');
-      exclamation.textContent = '!';
+      // Create exclamation mark inside triangle
+      const exclamationGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
-      // Add risk level indicator based on severity
-      if (risk.level === 'critical') {
-        badgeCircle.setAttribute('stroke-width', '3');
-        // Add pulsing animation for critical risks
-        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-        animate.setAttribute('attributeName', 'r');
-        animate.setAttribute('values', '10;12;10');
-        animate.setAttribute('dur', '2s');
-        animate.setAttribute('repeatCount', 'indefinite');
-        badgeCircle.appendChild(animate);
-      }
+      // Exclamation point (dot)
+      const exclamationDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      exclamationDot.setAttribute('cx', badgeX);
+      exclamationDot.setAttribute('cy', badgeY + 5);
+      exclamationDot.setAttribute('r', '1.5');
+      exclamationDot.setAttribute('fill', 'white');
+
+      // Exclamation line
+      const exclamationLine = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      exclamationLine.setAttribute('x', badgeX - 1.5);
+      exclamationLine.setAttribute('y', badgeY - 5);
+      exclamationLine.setAttribute('width', '3');
+      exclamationLine.setAttribute('height', '7');
+      exclamationLine.setAttribute('fill', 'white');
 
       // Add tooltip with this specific risk's details
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
@@ -144,9 +133,10 @@ export class SwimLaneRenderer {
       title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
       badgeGroup.appendChild(title);
 
-      badgeGroup.appendChild(badgeCircle);
       badgeGroup.appendChild(warningPath);
-      badgeGroup.appendChild(exclamation);
+      exclamationGroup.appendChild(exclamationLine);
+      exclamationGroup.appendChild(exclamationDot);
+      badgeGroup.appendChild(exclamationGroup);
 
       // Make each badge individually clickable
       badgeGroup.style.cursor = 'pointer';
@@ -164,18 +154,6 @@ export class SwimLaneRenderer {
         document.dispatchEvent(event);
       });
 
-      // Add hover effect
-      badgeGroup.addEventListener('mouseenter', () => {
-        badgeCircle.setAttribute('r', '12');
-        badgeCircle.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-      });
-
-      badgeGroup.addEventListener('mouseleave', () => {
-        if (risk.level !== 'critical') {
-          badgeCircle.setAttribute('r', '10');
-        }
-        badgeCircle.style.filter = '';
-      });
 
       risksContainer.appendChild(badgeGroup);
     });
@@ -419,34 +397,77 @@ export class SwimLaneRenderer {
             badgeGroup.dataset.riskId = risk.id;
 
             // Position badges in a row above the connection midpoint
-            const badgeSpacing = 25;
+            const badgeSpacing = 30;
             const startX = midPoint.x - ((conn.risks.length - 1) * badgeSpacing) / 2;
             const badgeX = startX + (index * badgeSpacing);
             const badgeY = midPoint.y - 25;
 
-            // Create circle background for badge
-            const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            badgeCircle.setAttribute('cx', badgeX);
-            badgeCircle.setAttribute('cy', badgeY);
-            badgeCircle.setAttribute('r', '10');
-            badgeCircle.setAttribute('fill', '#ffffff');
-            badgeCircle.setAttribute('stroke', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
-            badgeCircle.setAttribute('stroke-width', '2');
+            // Create larger filled warning triangle using SVG path
+            const warningPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            // Triangle path: move to top, line to bottom-right, line to bottom-left, close
+            const size = 12; // Half-width/height of triangle
+            const trianglePath = `M ${badgeX} ${badgeY - size} L ${badgeX + size} ${badgeY + size} L ${badgeX - size} ${badgeY + size} Z`;
+            warningPath.setAttribute('d', trianglePath);
+            warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
 
-            // Create warning icon
-            const warningIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            warningIcon.setAttribute('x', badgeX);
-            warningIcon.setAttribute('y', badgeY + 4);
-            warningIcon.setAttribute('text-anchor', 'middle');
-            warningIcon.setAttribute('font-size', '14');
-            warningIcon.setAttribute('fill', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
-            warningIcon.textContent = '⚠';
+            // Create exclamation mark inside triangle
+            const exclamationGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+            // Exclamation point (dot)
+            const exclamationDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            exclamationDot.setAttribute('cx', badgeX);
+            exclamationDot.setAttribute('cy', badgeY + 5);
+            exclamationDot.setAttribute('r', '1.5');
+            exclamationDot.setAttribute('fill', 'white');
+
+            // Exclamation line
+            const exclamationLine = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            exclamationLine.setAttribute('x', badgeX - 1.5);
+            exclamationLine.setAttribute('y', badgeY - 5);
+            exclamationLine.setAttribute('width', '3');
+            exclamationLine.setAttribute('height', '7');
+            exclamationLine.setAttribute('fill', 'white');
+
+            // Add tooltip with this specific risk's details
+            const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            const controlCount = risk.controls ? risk.controls.length : 0;
+            const controlStatus = hasControl
+              ? `Controls: ${controlCount} active`
+              : 'No controls';
+            const levelText = risk.level ? `[${risk.level.toUpperCase()}]` : '';
+            title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
+            badgeGroup.appendChild(title);
 
             // Add hover effect
             badgeGroup.style.cursor = 'pointer';
 
-            badgeGroup.appendChild(badgeCircle);
-            badgeGroup.appendChild(warningIcon);
+            // Add click handler to open risk modal for this connection
+            badgeGroup.addEventListener('click', (e) => {
+              e.stopPropagation();
+
+              // Create connection object for the risk modal
+              const connectionAsNode = {
+                id: `connection_${conn.from}_${conn.to}`,
+                text: `Connection: ${conn.from} → ${conn.to}`,
+                type: 'connection',
+                risks: conn.risks || [],
+                isConnection: true,
+                fromId: conn.from,
+                toId: conn.to,
+                label: conn.label
+              };
+
+              // Dispatch event to show risk modal (handled by app.js)
+              const showEvent = new CustomEvent('connectionRiskClick', {
+                detail: { connection: connectionAsNode }
+              });
+              document.dispatchEvent(showEvent);
+            });
+
+            badgeGroup.appendChild(warningPath);
+            exclamationGroup.appendChild(exclamationLine);
+            exclamationGroup.appendChild(exclamationDot);
+            badgeGroup.appendChild(exclamationGroup);
             risksContainer.appendChild(badgeGroup);
           });
 

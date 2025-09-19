@@ -586,20 +586,11 @@ body::before {
 
 .connection-risk-badge {
     cursor: pointer;
-    transition: transform 0.2s ease;
 }
 
-.connection-risk-badge:hover {
-    transform: scale(1.1);
-}
-
-.connection-risk-badge circle {
-    transition: all 0.2s ease;
-}
-
-.connection-risk-badge:hover circle {
-    filter: brightness(1.1);
-    stroke-width: 3;
+.connection-risk-badge text {
+    pointer-events: none;
+    user-select: none;
 }
 
 .connection-label {
