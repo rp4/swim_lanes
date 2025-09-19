@@ -165,7 +165,7 @@ export class ValidationService {
    * @returns {Object} Validated node
    */
   static validateNode(node) {
-    const validTypes = ['start', 'process', 'decision', 'end'];
+    const validTypes = ['start', 'process', 'decision', 'end', 'risk', 'control'];
 
     return {
       id: this.sanitizeId(node.id),
