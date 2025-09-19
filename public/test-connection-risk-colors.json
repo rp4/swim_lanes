@@ -1,0 +1,89 @@
+{
+  "title": "Connection Risk Color Test",
+  "phases": [],
+  "lanes": [
+    {
+      "id": "lane_1",
+      "name": "Process Lane",
+      "color": "#64b5f6",
+      "nodes": [
+        {
+          "id": "node_1",
+          "text": "Start",
+          "type": "start",
+          "position": { "x": 100, "y": 50 }
+        },
+        {
+          "id": "node_2",
+          "text": "Process",
+          "type": "process",
+          "position": { "x": 300, "y": 50 }
+        },
+        {
+          "id": "node_3",
+          "text": "End",
+          "type": "end",
+          "position": { "x": 500, "y": 50 }
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "node_1",
+      "to": "node_2",
+      "label": "With Controls",
+      "risks": [
+        {
+          "id": "risk_1",
+          "text": "Controlled Risk 1",
+          "level": "medium",
+          "description": "This risk has controls",
+          "controls": [
+            {
+              "id": "control_1",
+              "text": "Control A",
+              "type": "preventive",
+              "description": "Prevents the risk"
+            }
+          ]
+        },
+        {
+          "id": "risk_2",
+          "text": "Controlled Risk 2",
+          "level": "low",
+          "description": "This risk also has controls",
+          "controls": [
+            {
+              "id": "control_2",
+              "text": "Control B",
+              "type": "detective",
+              "description": "Detects the risk"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "from": "node_2",
+      "to": "node_3",
+      "label": "Without Controls",
+      "risks": [
+        {
+          "id": "risk_3",
+          "text": "Uncontrolled Risk 1",
+          "level": "high",
+          "description": "This risk has NO controls",
+          "controls": []
+        },
+        {
+          "id": "risk_4",
+          "text": "Uncontrolled Risk 2",
+          "level": "critical",
+          "description": "This risk also has NO controls",
+          "controls": []
+        }
+      ]
+    }
+  ]
+}

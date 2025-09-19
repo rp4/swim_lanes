@@ -135,14 +135,6 @@
                         <label for="nodeDescription">Description:</label>
                         <textarea id="nodeDescription" class="pool-input" rows="3" style="resize: vertical;"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label for="nodeType">Node Type:</label>
-                        <select id="nodeType" class="pool-select">
-                            <option value="process">Process Step</option>
-                            <option value="risk">Risk</option>
-                            <option value="control">Control</option>
-                        </select>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button id="addRiskBtn" class="pool-btn primary">Add Risk</button>
@@ -191,6 +183,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button id="addEdgeRiskBtn" class="pool-btn" style="background: #667eea;">
+                        <span style="margin-right: 5px;">⚠️</span> Add Risk
+                    </button>
                     <button id="saveEdgeBtn" class="pool-btn">Save</button>
                     <button id="deleteEdgeBtn" class="pool-btn danger">Delete</button>
                     <button id="cancelEdgeBtn" class="pool-btn secondary">Cancel</button>

@@ -57,6 +57,19 @@ export class ProcessExporter {
         from: conn.from,
         to: conn.to,
         label: conn.label || '',
+        // Include risks with embedded controls for connections
+        risks: conn.risks ? conn.risks.map((risk) => ({
+          id: risk.id,
+          text: risk.text,
+          level: risk.level,
+          description: risk.description || '',
+          controls: risk.controls ? risk.controls.map((control) => ({
+            id: control.id,
+            text: control.text,
+            type: control.type,
+            description: control.description || ''
+          })) : []
+        })) : [],
       })),
       metadata: processData.metadata || {},
     };

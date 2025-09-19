@@ -396,9 +396,62 @@ export class SwimLaneRenderer {
         const connectionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         connectionPath.setAttribute('d', path);
         connectionPath.classList.add('connection-line');
-        // Arrow removed from edge - displays as simple line
+
         connectionPath.setAttribute('data-from', conn.from);
         connectionPath.setAttribute('data-to', conn.to);
+
+        // Add risk indicator badges if connection has risks (similar to nodes)
+        if (conn.risks && conn.risks.length > 0) {
+          const midPoint = this.getPathMidpoint(fromNode, toNode);
+
+          // Create a container for all risk badges
+          const risksContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          risksContainer.classList.add('connection-risks-container');
+
+          // Create individual badge for each risk
+          conn.risks.forEach((risk, index) => {
+            // Check if this risk has controls
+            const hasControl = risk.controls && risk.controls.length > 0;
+
+            // Create badge group for this specific risk
+            const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            badgeGroup.classList.add('connection-risk-badge');
+            badgeGroup.dataset.riskId = risk.id;
+
+            // Position badges in a row above the connection midpoint
+            const badgeSpacing = 25;
+            const startX = midPoint.x - ((conn.risks.length - 1) * badgeSpacing) / 2;
+            const badgeX = startX + (index * badgeSpacing);
+            const badgeY = midPoint.y - 25;
+
+            // Create circle background for badge
+            const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            badgeCircle.setAttribute('cx', badgeX);
+            badgeCircle.setAttribute('cy', badgeY);
+            badgeCircle.setAttribute('r', '10');
+            badgeCircle.setAttribute('fill', '#ffffff');
+            badgeCircle.setAttribute('stroke', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
+            badgeCircle.setAttribute('stroke-width', '2');
+
+            // Create warning icon
+            const warningIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            warningIcon.setAttribute('x', badgeX);
+            warningIcon.setAttribute('y', badgeY + 4);
+            warningIcon.setAttribute('text-anchor', 'middle');
+            warningIcon.setAttribute('font-size', '14');
+            warningIcon.setAttribute('fill', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
+            warningIcon.textContent = '⚠';
+
+            // Add hover effect
+            badgeGroup.style.cursor = 'pointer';
+
+            badgeGroup.appendChild(badgeCircle);
+            badgeGroup.appendChild(warningIcon);
+            risksContainer.appendChild(badgeGroup);
+          });
+
+          this.connectionsGroup.appendChild(risksContainer);
+        }
 
         if (conn.label) {
           const midPoint = this.getPathMidpoint(fromNode, toNode);

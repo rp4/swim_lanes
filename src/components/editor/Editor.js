@@ -341,11 +341,9 @@ export class DiagramEditor {
     const modal = document.getElementById('nodeModal');
     const nodeText = document.getElementById('nodeText');
     const nodeDescription = document.getElementById('nodeDescription');
-    const nodeType = document.getElementById('nodeType');
 
     nodeText.value = node.text;
     nodeDescription.value = node.description || '';
-    nodeType.value = node.type;
 
     modal.style.display = 'flex';
     this.renderer.selectedNode = nodeId;
@@ -361,10 +359,11 @@ export class DiagramEditor {
       this.renderer.updateNode(nodeId, {
         text: nodeText.value,
         description: nodeDescription.value,
-        type: nodeType.value,
+        // Keep existing type - don't allow editing
+        type: node.type,
         // Don't save color - it should be determined by type
         // color: nodeColor.value,
-        icon: this.renderer.getNodeIcon(nodeType.value),
+        icon: this.renderer.getNodeIcon(node.type),
       });
       modal.style.display = 'none';
       this.cleanup();
@@ -384,8 +383,8 @@ export class DiagramEditor {
       this.renderer.updateNode(nodeId, {
         text: nodeText.value,
         description: nodeDescription.value,
-        type: nodeType.value,
-        icon: this.renderer.getNodeIcon(nodeType.value),
+        type: node.type,
+        icon: this.renderer.getNodeIcon(node.type),
       });
 
       // Hide the node modal
@@ -604,6 +603,7 @@ export class DiagramEditor {
     const saveBtn = document.getElementById('saveEdgeBtn');
     const deleteBtn = document.getElementById('deleteEdgeBtn');
     const cancelBtn = document.getElementById('cancelEdgeBtn');
+    const addRiskBtn = document.getElementById('addEdgeRiskBtn');
     const closeBtn = modal.querySelector('.close-btn');
 
     const saveHandler = () => {
@@ -627,10 +627,43 @@ export class DiagramEditor {
       this.cleanup();
     };
 
+    const riskHandler = () => {
+      // Save the current label value first
+      this.renderer.updateConnection(fromId, toId, edgeLabel.value);
+
+      // Close the Edit Connection modal
+      modal.style.display = 'none';
+
+      // Get the updated connection with the latest data
+      const updatedConnection = this.renderer.findConnection(fromId, toId);
+
+      // Create a connection object that looks like a node for the risk modal
+      const connectionAsNode = {
+        id: `connection_${fromId}_${toId}`,
+        text: `Connection: ${fromId} → ${toId}`,
+        type: 'connection',
+        risks: updatedConnection.risks || [],
+        isConnection: true,
+        fromId: fromId,
+        toId: toId,
+        label: updatedConnection.label
+      };
+
+      // Dispatch event to show risk modal (handled by app.js)
+      const showEvent = new CustomEvent('connectionRiskClick', {
+        detail: { connection: connectionAsNode }
+      });
+      document.dispatchEvent(showEvent);
+
+      // Clean up the Edit Connection modal event listeners
+      this.cleanup();
+    };
+
     const cleanup = () => {
       saveBtn.removeEventListener('click', saveHandler);
       deleteBtn.removeEventListener('click', deleteHandler);
       cancelBtn.removeEventListener('click', cancelHandler);
+      addRiskBtn.removeEventListener('click', riskHandler);
       closeBtn.removeEventListener('click', cancelHandler);
       this.currentEdge = null;
     };
@@ -640,6 +673,7 @@ export class DiagramEditor {
     saveBtn.addEventListener('click', saveHandler);
     deleteBtn.addEventListener('click', deleteHandler);
     cancelBtn.addEventListener('click', cancelHandler);
+    addRiskBtn.addEventListener('click', riskHandler);
     closeBtn.addEventListener('click', cancelHandler);
   }
 

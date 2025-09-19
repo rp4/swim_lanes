@@ -27,6 +27,10 @@ export class RiskDetailsModal {
   show(node) {
     // Store node ID to find fresh node later
     this.nodeId = node.id;
+    // Check if this is a connection
+    this.isConnection = node.isConnection || false;
+    this.fromId = node.fromId;
+    this.toId = node.toId;
     // Create deep copies of the node to avoid modifying the original
     this.originalNode = JSON.parse(JSON.stringify(node));
     this.currentNode = JSON.parse(JSON.stringify(node));
@@ -103,7 +107,7 @@ export class RiskDetailsModal {
         <div class="risk-modal-body">
           <div class="node-info">
             <h3>${this.currentNode.text}</h3>
-            <span class="node-type-badge">${this.currentNode.type}</span>
+            <span class="node-type-badge">${this.isConnection ? (this.currentNode.label || 'Connection') : this.currentNode.type}</span>
           </div>
 
           <div class="risks-section">
@@ -389,13 +393,24 @@ export class RiskDetailsModal {
     });
 
     // Dispatch save event with just the risks update
-    const event = new CustomEvent('riskDetailsUpdated', {
-      detail: {
-        nodeId: this.nodeId,
-        risks: updatedRisks
-      }
-    });
-    document.dispatchEvent(event);
+    if (this.isConnection) {
+      const event = new CustomEvent('connectionRiskDetailsUpdated', {
+        detail: {
+          fromId: this.fromId,
+          toId: this.toId,
+          risks: updatedRisks
+        }
+      });
+      document.dispatchEvent(event);
+    } else {
+      const event = new CustomEvent('riskDetailsUpdated', {
+        detail: {
+          nodeId: this.nodeId,
+          risks: updatedRisks
+        }
+      });
+      document.dispatchEvent(event);
+    }
 
     this.close();
   }
@@ -408,6 +423,9 @@ export class RiskDetailsModal {
     this.currentNode = null;
     this.originalNode = null;
     this.nodeId = null;
+    this.isConnection = false;
+    this.fromId = null;
+    this.toId = null;
   }
 
   destroy() {

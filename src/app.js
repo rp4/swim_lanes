@@ -52,6 +52,32 @@ class SwimLaneApp {
       this.editor.saveState();
     });
 
+    // Listen for connection risk modal trigger
+    document.addEventListener('connectionRiskClick', (e) => {
+      if (e.detail.connection) {
+        this.riskDetailsModal.show(e.detail.connection);
+      }
+    });
+
+    // Listen for connection risk updates
+    document.addEventListener('connectionRiskDetailsUpdated', (e) => {
+      // Update the connection with the new risk data
+      if (e.detail.fromId && e.detail.toId && e.detail.risks !== undefined) {
+        const connection = this.renderer.findConnection(e.detail.fromId, e.detail.toId);
+        if (connection) {
+          connection.risks = e.detail.risks;
+          console.log('Connection risks updated:', {
+            from: e.detail.fromId,
+            to: e.detail.toId,
+            risksCount: e.detail.risks.length,
+            risks: e.detail.risks
+          });
+          this.renderer.render(this.renderer.processData);
+        }
+      }
+      this.editor.saveState();
+    });
+
     this.keyboardManager.setupKeyboardShortcuts();
     this.initialized = true;
     console.log('🏊 Swim Lane Diagram Visualizer initialized!');
