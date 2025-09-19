@@ -637,10 +637,16 @@ export class DiagramEditor {
       // Get the updated connection with the latest data
       const updatedConnection = this.renderer.findConnection(fromId, toId);
 
+      // Get the actual node names
+      const fromNode = this.renderer.findNode(fromId);
+      const toNode = this.renderer.findNode(toId);
+      const fromName = fromNode ? fromNode.text : fromId;
+      const toName = toNode ? toNode.text : toId;
+
       // Create a connection object that looks like a node for the risk modal
       const connectionAsNode = {
         id: `connection_${fromId}_${toId}`,
-        text: `Connection: ${fromId} → ${toId}`,
+        text: `Connection: ${fromName} → ${toName}`,
         type: 'connection',
         risks: updatedConnection.risks || [],
         isConnection: true,

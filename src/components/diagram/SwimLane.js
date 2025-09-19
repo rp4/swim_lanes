@@ -445,10 +445,14 @@ export class SwimLaneRenderer {
             badgeGroup.addEventListener('click', (e) => {
               e.stopPropagation();
 
+              // Get the actual node names (fromNode and toNode are already available in this scope)
+              const fromName = fromNode ? fromNode.text : conn.from;
+              const toName = toNode ? toNode.text : conn.to;
+
               // Create connection object for the risk modal
               const connectionAsNode = {
                 id: `connection_${conn.from}_${conn.to}`,
-                text: `Connection: ${conn.from} → ${conn.to}`,
+                text: `Connection: ${fromName} → ${toName}`,
                 type: 'connection',
                 risks: conn.risks || [],
                 isConnection: true,
