@@ -13,20 +13,28 @@ export class DiagramEditor {
     this.history = [];
     this.historyIndex = -1;
     this.maxHistory = 50;
+    // Store bound handlers for cleanup
+    this.boundHandlers = {};
 
     this.setupEventListeners();
   }
 
   setupEventListeners() {
-    this.svg.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    this.svg.addEventListener('mousemove', this.handleMouseMove.bind(this));
-    this.svg.addEventListener('mouseup', this.handleMouseUp.bind(this));
-    this.svg.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+    // Bind handlers and store references
+    this.boundHandlers.handleMouseDown = this.handleMouseDown.bind(this);
+    this.boundHandlers.handleMouseMove = this.handleMouseMove.bind(this);
+    this.boundHandlers.handleMouseUp = this.handleMouseUp.bind(this);
+    this.boundHandlers.handleDoubleClick = this.handleDoubleClick.bind(this);
+    this.boundHandlers.handleAnchorClick = this.handleAnchorClick.bind(this);
+    this.boundHandlers.handleKeyDown = this.handleKeyDown.bind(this);
 
-    // Add click listener for connection anchors
-    this.svg.addEventListener('click', this.handleAnchorClick.bind(this));
-
-    document.addEventListener('keydown', this.handleKeyDown.bind(this));
+    // Add event listeners
+    this.svg.addEventListener('mousedown', this.boundHandlers.handleMouseDown);
+    this.svg.addEventListener('mousemove', this.boundHandlers.handleMouseMove);
+    this.svg.addEventListener('mouseup', this.boundHandlers.handleMouseUp);
+    this.svg.addEventListener('dblclick', this.boundHandlers.handleDoubleClick);
+    this.svg.addEventListener('click', this.boundHandlers.handleAnchorClick);
+    document.addEventListener('keydown', this.boundHandlers.handleKeyDown);
   }
 
   getSVGPoint(e) {
@@ -174,7 +182,6 @@ export class DiagramEditor {
       const phaseGroup = phaseElement.closest('.phase-divider-group') || phaseElement;
       const phaseId = phaseGroup.getAttribute('data-phase-id');
       this.editPhase(phaseId);
-      return;
     }
   }
 
@@ -346,6 +353,7 @@ export class DiagramEditor {
     const saveBtn = document.getElementById('saveNodeBtn');
     const deleteBtn = document.getElementById('deleteNodeBtn');
     const cancelBtn = document.getElementById('cancelNodeBtn');
+    const addRiskBtn = document.getElementById('addRiskBtn');
     const closeBtn = modal.querySelector('.close-btn');
 
     const saveHandler = () => {
@@ -371,6 +379,28 @@ export class DiagramEditor {
       }
     };
 
+    const addRiskHandler = () => {
+      // Save current node values first
+      this.renderer.updateNode(nodeId, {
+        text: nodeText.value,
+        description: nodeDescription.value,
+        type: nodeType.value,
+        icon: this.renderer.getNodeIcon(nodeType.value),
+      });
+
+      // Hide the node modal
+      modal.style.display = 'none';
+
+      // Show the risk modal for this node by dispatching event
+      const updatedNode = this.renderer.findNode(nodeId);
+      const showEvent = new CustomEvent('riskBadgeClick', {
+        detail: { node: updatedNode }
+      });
+      document.dispatchEvent(showEvent);
+
+      // The global handler in app.js will handle the update
+    };
+
     const cancelHandler = () => {
       modal.style.display = 'none';
       this.cleanup();
@@ -380,6 +410,7 @@ export class DiagramEditor {
       saveBtn.removeEventListener('click', saveHandler);
       deleteBtn.removeEventListener('click', deleteHandler);
       cancelBtn.removeEventListener('click', cancelHandler);
+      addRiskBtn.removeEventListener('click', addRiskHandler);
       closeBtn.removeEventListener('click', cancelHandler);
       this.renderer.selectedNode = null;
     };
@@ -389,6 +420,7 @@ export class DiagramEditor {
     saveBtn.addEventListener('click', saveHandler);
     deleteBtn.addEventListener('click', deleteHandler);
     cancelBtn.addEventListener('click', cancelHandler);
+    addRiskBtn.addEventListener('click', addRiskHandler);
     closeBtn.addEventListener('click', cancelHandler);
   }
 
@@ -406,7 +438,7 @@ export class DiagramEditor {
 
     // Set the current lane position (1-based for user)
     const lanes = this.renderer.processData.lanes;
-    const currentPosition = lanes.findIndex(l => l.id === laneId) + 1;
+    const currentPosition = lanes.findIndex((l) => l.id === laneId) + 1;
     laneNumber.value = currentPosition;
     laneNumber.max = lanes.length;
 
@@ -425,7 +457,7 @@ export class DiagramEditor {
 
       // Handle lane reordering
       const newPosition = parseInt(laneNumber.value) - 1; // Convert to 0-based index
-      const currentPosition = lanes.findIndex(l => l.id === laneId);
+      const currentPosition = lanes.findIndex((l) => l.id === laneId);
 
       if (newPosition !== currentPosition && newPosition >= 0 && newPosition < lanes.length) {
         // Remove lane from current position
@@ -486,7 +518,7 @@ export class DiagramEditor {
     // Calculate the phase length in circles based on its position and the previous phase
     const phases = this.renderer.processData?.phases || [];
     const sortedPhases = [...phases].sort((a, b) => a.position - b.position);
-    const phaseIndex = sortedPhases.findIndex(p => p.id === phaseId);
+    const phaseIndex = sortedPhases.findIndex((p) => p.id === phaseId);
 
     let phaseStart = 20; // Default start
     if (phaseIndex > 0) {
@@ -513,7 +545,7 @@ export class DiagramEditor {
       // Calculate new position based on phase length
       const newNumCircles = parseInt(phaseLength.value);
       const phaseStart = phaseIndex > 0 ? sortedPhases[phaseIndex - 1].position : 20;
-      const newPosition = phaseStart + (newNumCircles * 40);
+      const newPosition = phaseStart + newNumCircles * 40;
 
       this.renderer.updatePhase(phaseId, {
         name: phaseName.value,
@@ -656,6 +688,31 @@ export class DiagramEditor {
       this.renderer.deleteNode(this.renderer.selectedNode);
       this.renderer.selectedNode = null;
     }
+  }
+
+  destroy() {
+    // Remove all event listeners
+    if (this.boundHandlers) {
+      this.svg.removeEventListener('mousedown', this.boundHandlers.handleMouseDown);
+      this.svg.removeEventListener('mousemove', this.boundHandlers.handleMouseMove);
+      this.svg.removeEventListener('mouseup', this.boundHandlers.handleMouseUp);
+      this.svg.removeEventListener('dblclick', this.boundHandlers.handleDoubleClick);
+      this.svg.removeEventListener('click', this.boundHandlers.handleAnchorClick);
+      document.removeEventListener('keydown', this.boundHandlers.handleKeyDown);
+    }
+
+    // Clean up any active connections
+    this.cancelConnection();
+
+    // Clean up any open modals
+    if (this.cleanup) {
+      this.cleanup();
+    }
+
+    // Clear references
+    this.svg = null;
+    this.renderer = null;
+    this.boundHandlers = null;
   }
 }
 

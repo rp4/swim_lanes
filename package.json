@@ -53,9 +53,6 @@
     "docs": "typedoc --out docs/api src",
     "clean": "rm -rf dist coverage docs/api"
   },
-  "dependencies": {
-    "file-saver": "^2.0.5"
-  },
   "devDependencies": {
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",

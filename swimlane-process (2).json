@@ -1,0 +1,92 @@
+{
+  "title": "Sample Swimming Pool Maintenance Process",
+  "phases": [
+    {
+      "id": "phase_1",
+      "name": "Phase 1: Discovery",
+      "position": 400
+    },
+    {
+      "id": "phase_2",
+      "name": "Phase 2: Assessment",
+      "position": 800
+    },
+    {
+      "id": "phase_3",
+      "name": "Phase 3: Resolution",
+      "position": 1200
+    },
+    {
+      "id": "phase_4",
+      "name": "Phase 4: Closure",
+      "position": 1600
+    }
+  ],
+  "lanes": [
+    {
+      "id": "lane_1",
+      "name": "Pool Owner",
+      "color": "#64b5f6",
+      "nodes": [
+        {
+          "id": "node_1757905796196",
+          "text": "New Risk",
+          "type": "risk",
+          "description": "",
+          "position": {
+            "x": 636.1748046875,
+            "y": 120
+          },
+          "metadata": {}
+        },
+        {
+          "id": "node_1757905797360",
+          "text": "New Step",
+          "type": "process",
+          "description": "",
+          "position": {
+            "x": 466.3110046386719,
+            "y": 120
+          },
+          "metadata": {}
+        },
+        {
+          "id": "node_1757905798646",
+          "text": "New Control",
+          "type": "control",
+          "description": "",
+          "position": {
+            "x": 833.96142578125,
+            "y": 120
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "lane_2",
+      "name": "Pool Service",
+      "color": "#4fc3f7",
+      "nodes": []
+    },
+    {
+      "id": "lane_3",
+      "name": "Quality Check",
+      "color": "#29b6f6",
+      "nodes": []
+    }
+  ],
+  "connections": [
+    {
+      "from": "node_1757905796196",
+      "to": "node_1757905797360",
+      "label": ""
+    },
+    {
+      "from": "node_1757905796196",
+      "to": "node_1757905798646",
+      "label": "test"
+    }
+  ],
+  "metadata": {}
+}

@@ -9,6 +9,7 @@ export class ProcessParser {
   parse(jsonString) {
     try {
       const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+      console.log('Parsing JSON data:', jsonData);
       return this.parseProcess(jsonData);
     } catch (error) {
       throw new Error(`Failed to parse JSON: ${error.message}`);
@@ -57,9 +58,11 @@ export class ProcessParser {
 
       // Enhance nodes with icons and colors from theme
       lane.nodes.forEach((node) => {
+        console.log(`Processing node in lane ${lane.name}:`, node.id, 'Type:', node.type, 'Text:', node.text);
         node.icon = Theme.nodes.getIcon(node.type);
         // Always use theme color based on node type, ignore imported color
         node.color = Theme.nodes.getColor(node.type);
+        console.log(`  -> Assigned color:`, node.color, 'for type:', node.type);
       });
     });
 
@@ -72,7 +75,7 @@ export class ProcessParser {
       y: laneIndex * 150 + 100,
     };
 
-    return {
+    const parsedNode = {
       id: node.id || `node_${laneIndex}_${nodeIndex}`,
       text: node.text || 'Node',
       type: node.type || 'process',
@@ -81,6 +84,32 @@ export class ProcessParser {
       icon: this.nodeIcons[node.type] || '🏊',
       metadata: node.metadata || {},
     };
+
+    // Include risks with embedded controls if present
+    if (node.risks && Array.isArray(node.risks)) {
+      parsedNode.risks = node.risks.map(risk => ({
+        id: risk.id || `risk_${Date.now()}_${Math.random()}`,
+        text: risk.text || '',
+        level: risk.level || 'medium',
+        description: risk.description || '',
+        controls: risk.controls && Array.isArray(risk.controls)
+          ? risk.controls.map(control => ({
+              id: control.id || `control_${Date.now()}_${Math.random()}`,
+              text: control.text || '',
+              type: control.type || 'preventive',
+              description: control.description || ''
+            }))
+          : []
+      }));
+    }
+
+    // Handle legacy structure with separate controls array (for backward compatibility)
+    if (node.controls && Array.isArray(node.controls)) {
+      // This will be migrated by RiskDetailsModal when opened
+      parsedNode.controls = node.controls;
+    }
+
+    return parsedNode;
   }
 
   generateLaneColor(index) {
@@ -115,108 +144,178 @@ export class ProcessParser {
 
   generateSampleProcess() {
     return {
-      title: 'Sample Swimming Pool Maintenance Process',
+      title: 'Loan Approval Process with Risk Management',
       phases: [
         {
           id: 'phase_1',
-          name: 'Phase 1: Discovery',
-          position: 400, // 10 circles (400/40)
+          name: 'Application',
+          position: 250,
         },
         {
           id: 'phase_2',
-          name: 'Phase 2: Assessment',
-          position: 800, // 10 more circles (400/40)
+          name: 'Verification',
+          position: 550,
         },
         {
           id: 'phase_3',
-          name: 'Phase 3: Resolution',
-          position: 1200, // 10 more circles (400/40)
+          name: 'Approval',
+          position: 850,
         },
         {
           id: 'phase_4',
-          name: 'Phase 4: Closure',
-          position: 1600, // 10 more circles (400/40) - Total: 40 circles
+          name: 'Disbursement',
+          position: 1150,
         },
       ],
       lanes: [
         {
           id: 'lane_1',
-          name: 'Pool Owner',
+          name: 'Customer',
           color: '#64b5f6',
           nodes: [
             {
               id: 'node_1',
-              text: 'Notice Pool Issues',
+              text: 'Submit Application',
               type: 'start',
-              position: { x: 100, y: 50 },
-            },
-            {
-              id: 'node_2',
-              text: 'Submit Request',
-              type: 'process',
-              position: { x: 300, y: 50 },
-            },
-            {
-              id: 'node_7',
-              text: 'Approve Work',
-              type: 'decision',
-              position: { x: 700, y: 50 },
+              position: { x: 150, y: 70 },
+              risks: [
+                {
+                  id: 'risk_1',
+                  text: 'Incomplete documentation',
+                  level: 'medium',
+                  description: 'Customer may not provide all required documents',
+                  controlIds: ['control_1'],
+                },
+                {
+                  id: 'risk_2',
+                  text: 'Fraudulent information',
+                  level: 'high',
+                  description: 'Customer may submit false information',
+                  controlIds: [],
+                },
+              ],
+              controls: [
+                {
+                  id: 'control_1',
+                  text: 'Document checklist',
+                  type: 'preventive',
+                  description: 'Automated validation of required documents',
+                },
+              ],
             },
           ],
         },
         {
           id: 'lane_2',
-          name: 'Pool Service',
+          name: 'Front Office',
           color: '#4fc3f7',
           nodes: [
             {
+              id: 'node_2',
+              text: 'Initial Review',
+              type: 'process',
+              position: { x: 350, y: 70 },
+              risks: [
+                {
+                  id: 'risk_3',
+                  text: 'Processing delays',
+                  level: 'low',
+                  description: 'High volume may cause backlogs',
+                  controlIds: ['control_2', 'control_3'],
+                },
+              ],
+              controls: [
+                {
+                  id: 'control_2',
+                  text: 'SLA monitoring',
+                  type: 'detective',
+                  description: 'Track processing times against targets',
+                },
+                {
+                  id: 'control_3',
+                  text: 'Workload balancing',
+                  type: 'preventive',
+                  description: 'Automated distribution of applications',
+                },
+              ],
+            },
+            {
               id: 'node_3',
-              text: 'Receive Request',
+              text: 'Document Verification',
               type: 'process',
-              position: { x: 300, y: 200 },
-            },
-            {
-              id: 'node_4',
-              text: 'Inspect Pool',
-              type: 'process',
-              position: { x: 500, y: 200 },
-            },
-            {
-              id: 'node_5',
-              text: 'Perform Service',
-              type: 'process',
-              position: { x: 700, y: 200 },
+              position: { x: 550, y: 70 },
+              risks: [
+                {
+                  id: 'risk_4',
+                  text: 'Document forgery',
+                  level: 'high',
+                  description: 'Submitted documents may be forged',
+                  controlIds: ['control_4', 'control_5'],
+                },
+              ],
+              controls: [
+                {
+                  id: 'control_4',
+                  text: 'Document authentication',
+                  type: 'detective',
+                  description: 'Digital verification of document authenticity',
+                },
+                {
+                  id: 'control_5',
+                  text: 'Dual verification',
+                  type: 'preventive',
+                  description: 'Two-person review for high-value loans',
+                },
+              ],
             },
           ],
         },
         {
           id: 'lane_3',
-          name: 'Quality Check',
+          name: 'Credit Department',
           color: '#29b6f6',
           nodes: [
             {
-              id: 'node_6',
-              text: 'Test Water Quality',
+              id: 'node_4',
+              text: 'Credit Check',
               type: 'process',
-              position: { x: 900, y: 350 },
+              position: { x: 750, y: 70 },
+              risks: [
+                {
+                  id: 'risk_5',
+                  text: 'Identity theft',
+                  level: 'high',
+                  description: 'Applicant may be using stolen identity',
+                  controlIds: [],
+                },
+              ],
+              controls: [],
             },
             {
-              id: 'node_8',
-              text: 'Complete',
+              id: 'node_5',
+              text: 'Risk Assessment',
+              type: 'decision',
+              position: { x: 950, y: 70 },
+              risks: [],
+              controls: [],
+            },
+            {
+              id: 'node_6',
+              text: 'Final Approval',
               type: 'end',
-              position: { x: 1100, y: 350 },
+              position: { x: 1150, y: 70 },
+              risks: [],
+              controls: [],
             },
           ],
         },
       ],
       connections: [
-        { from: 'node_1', to: 'node_2', label: 'Report' },
-        { from: 'node_2', to: 'node_3', label: 'Request' },
-        { from: 'node_3', to: 'node_4', label: 'Schedule' },
-        { from: 'node_4', to: 'node_5', label: 'Issues Found' },
-        { from: 'node_5', to: 'node_7', label: 'Review' },
-        { from: 'node_7', to: 'node_6', label: 'Approved' },
-        { from: 'node_6', to: 'node_8', label: 'Pass' },
+        { from: 'node_1', to: 'node_2', label: 'Application received' },
+        { from: 'node_2', to: 'node_3', label: 'Initial check passed' },
+        { from: 'node_3', to: 'node_4', label: 'Documents verified' },
+        { from: 'node_4', to: 'node_5', label: 'Credit checked' },
+        { from: 'node_5', to: 'node_6', label: 'Risk acceptable' },
       ],
     };
   }

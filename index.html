@@ -24,20 +24,12 @@
                         <span class="icon">🏊</span>
                         <span>Add Phase</span>
                     </button>
+                    <button id="addStepBtn" class="pool-btn draggable-step" draggable="true">
+                        <span class="icon">📝</span>
+                        <span>Add Step</span>
+                    </button>
                 </div>
 
-                <div class="node-palette">
-                    <label>Drag Nodes:</label>
-                    <div class="draggable-node" data-node-type="process" draggable="true">
-                        <span>Process</span>
-                    </div>
-                    <div class="draggable-node" data-node-type="risk" draggable="true">
-                        <span>Risk</span>
-                    </div>
-                    <div class="draggable-node" data-node-type="control" draggable="true">
-                        <span>Control</span>
-                    </div>
-                </div>
 
 
                 <div class="tool-group">
@@ -153,6 +145,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button id="addRiskBtn" class="pool-btn primary">Add Risk</button>
                     <button id="saveNodeBtn" class="pool-btn">Save</button>
                     <button id="deleteNodeBtn" class="pool-btn danger">Delete</button>
                     <button id="cancelNodeBtn" class="pool-btn secondary">Cancel</button>

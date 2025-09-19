@@ -60,6 +60,9 @@ export class SwimLaneRenderer {
     nodeGroup.addEventListener('mouseleave', hideTooltip);
     nodeGroup.addEventListener('mousemove', moveTooltip);
 
+    // Store handlers and tooltip for cleanup
+    nodeGroup._tooltipData = { showTooltip, hideTooltip, moveTooltip, tooltip };
+
     // Clean up tooltip when node is removed
     const originalRemove = nodeGroup.remove;
     nodeGroup.remove = function () {
@@ -68,6 +71,116 @@ export class SwimLaneRenderer {
       }
       originalRemove.call(this);
     };
+  }
+
+  addRiskBadge(nodeGroup, x, y, node) {
+    // Create a container for all risk badges
+    const risksContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    risksContainer.classList.add('risks-container');
+
+    // Create individual badge for each risk
+    node.risks.forEach((risk, index) => {
+      // Check for controls in the new embedded structure
+      const hasControl = (risk.controls && risk.controls.length > 0) ||
+                         (risk.controlIds && risk.controlIds.length > 0); // backward compatibility
+
+      // Create warning icon for this specific risk
+      const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      badgeGroup.classList.add('risk-badge');
+      badgeGroup.dataset.riskId = risk.id;
+
+      // Position badges in a row above the node
+      const badgeSpacing = 25;
+      const startX = x - ((node.risks.length - 1) * badgeSpacing) / 2;
+      const badgeX = startX + (index * badgeSpacing);
+      const badgeY = y - 35;
+
+      // Create circle background for badge
+      const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      badgeCircle.setAttribute('cx', badgeX);
+      badgeCircle.setAttribute('cy', badgeY);
+      badgeCircle.setAttribute('r', '10');
+      badgeCircle.setAttribute('fill', '#ffffff');
+      badgeCircle.setAttribute('stroke', hasControl ? '#ff9800' : '#f44336');
+      badgeCircle.setAttribute('stroke-width', '2');
+
+      // Create warning triangle path
+      const warningPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const trianglePath = `M ${badgeX} ${badgeY - 5} L ${badgeX - 4} ${badgeY + 3} L ${badgeX + 4} ${badgeY + 3} Z`;
+      warningPath.setAttribute('d', trianglePath);
+      warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336');
+
+      // Create exclamation mark
+      const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      exclamation.setAttribute('x', badgeX);
+      exclamation.setAttribute('y', badgeY + 1);
+      exclamation.setAttribute('text-anchor', 'middle');
+      exclamation.setAttribute('fill', '#ffffff');
+      exclamation.setAttribute('font-size', '8');
+      exclamation.setAttribute('font-weight', 'bold');
+      exclamation.textContent = '!';
+
+      // Add risk level indicator based on severity
+      if (risk.level === 'critical') {
+        badgeCircle.setAttribute('stroke-width', '3');
+        // Add pulsing animation for critical risks
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'r');
+        animate.setAttribute('values', '10;12;10');
+        animate.setAttribute('dur', '2s');
+        animate.setAttribute('repeatCount', 'indefinite');
+        badgeCircle.appendChild(animate);
+      }
+
+      // Add tooltip with this specific risk's details
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      // Count controls from either new or old structure
+      const controlCount = risk.controls ? risk.controls.length :
+                          (risk.controlIds ? risk.controlIds.length : 0);
+      const controlStatus = hasControl
+        ? `Controls: ${controlCount} active`
+        : 'No controls';
+      const levelText = risk.level ? `[${risk.level.toUpperCase()}]` : '';
+      title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
+      badgeGroup.appendChild(title);
+
+      badgeGroup.appendChild(badgeCircle);
+      badgeGroup.appendChild(warningPath);
+      badgeGroup.appendChild(exclamation);
+
+      // Make each badge individually clickable
+      badgeGroup.style.cursor = 'pointer';
+      badgeGroup.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Dispatch custom event for this specific risk
+        const event = new CustomEvent('riskBadgeClick', {
+          detail: {
+            node,
+            risk,
+            allRisks: node.risks,
+            allControls: node.controls || []
+          }
+        });
+        document.dispatchEvent(event);
+      });
+
+      // Add hover effect
+      badgeGroup.addEventListener('mouseenter', () => {
+        badgeCircle.setAttribute('r', '12');
+        badgeCircle.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+      });
+
+      badgeGroup.addEventListener('mouseleave', () => {
+        if (risk.level !== 'critical') {
+          badgeCircle.setAttribute('r', '10');
+        }
+        badgeCircle.style.filter = '';
+      });
+
+      risksContainer.appendChild(badgeGroup);
+    });
+
+    nodeGroup.appendChild(risksContainer);
   }
 
   addConnectionAnchors(nodeGroup, x, y, nodeId) {
@@ -95,15 +208,21 @@ export class SwimLaneRenderer {
     });
 
     // Show anchors on hover
-    nodeGroup.addEventListener('mouseenter', () => {
+    const handleAnchorShow = () => {
       const anchors = nodeGroup.querySelectorAll('.connection-anchor');
       anchors.forEach((a) => (a.style.opacity = '0.8'));
-    });
+    };
 
-    nodeGroup.addEventListener('mouseleave', () => {
+    const handleAnchorHide = () => {
       const anchors = nodeGroup.querySelectorAll('.connection-anchor');
       anchors.forEach((a) => (a.style.opacity = '0'));
-    });
+    };
+
+    nodeGroup.addEventListener('mouseenter', handleAnchorShow);
+    nodeGroup.addEventListener('mouseleave', handleAnchorHide);
+
+    // Store handlers for cleanup
+    nodeGroup._anchorHandlers = { handleAnchorShow, handleAnchorHide };
   }
 
   // Arrow marker method removed - edges will display without arrows
@@ -125,6 +244,9 @@ export class SwimLaneRenderer {
   }
 
   clear() {
+    // Clean up event listeners before removing nodes
+    this.cleanupEventListeners();
+
     // Safe DOM manipulation to prevent XSS
     while (this.swimlanesGroup.firstChild) {
       this.swimlanesGroup.removeChild(this.swimlanesGroup.firstChild);
@@ -197,6 +319,8 @@ export class SwimLaneRenderer {
         // Store the calculated position
         node.position.y = y;
 
+        console.log(`Rendering node ${node.id}: type=${node.type}, color=${node.color}`);
+
         switch (node.type) {
           case 'start':
           case 'end':
@@ -210,16 +334,8 @@ export class SwimLaneRenderer {
             const points = `${x},${y - 35} ${x + 35},${y} ${x},${y + 35} ${x - 35},${y}`;
             nodeShape.setAttribute('points', points);
             break;
-          case 'risk':
-            // Risk nodes have right angle corners
-            nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            nodeShape.setAttribute('x', x - 50);
-            nodeShape.setAttribute('y', y - 25);
-            nodeShape.setAttribute('width', '100');
-            nodeShape.setAttribute('height', '50');
-            // No rx/ry attributes for right angles
-            break;
           default:
+            console.log('Creating PROCESS node (default) with rounded corners');
             nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             nodeShape.setAttribute('x', x - 50);
             nodeShape.setAttribute('y', y - 25);
@@ -252,6 +368,11 @@ export class SwimLaneRenderer {
         nodeGroup.appendChild(nodeShape);
         nodeGroup.appendChild(nodeIcon);
         nodeGroup.appendChild(nodeText);
+
+        // Add risk badges if node has risks
+        if (node.risks && node.risks.length > 0) {
+          this.addRiskBadge(nodeGroup, x, y, node);
+        }
 
         // Add connection anchors
         this.addConnectionAnchors(nodeGroup, x, y, node.id);
@@ -588,12 +709,15 @@ export class SwimLaneRenderer {
     const phaseColors = ['#FF5722', '#2196F3']; // Red, Blue
 
     // Sort phases by position for proper color assignment
-    const sortedPhases = this.processData.phases ?
-      [...this.processData.phases].sort((a, b) => a.position - b.position) : [];
+    const sortedPhases = this.processData.phases
+      ? [...this.processData.phases].sort((a, b) => a.position - b.position)
+      : [];
 
     // Create horizontal dividers between lanes
     this.processData.lanes.forEach((lane, index) => {
-      if (index === 0) return; // Skip first lane (no divider above it)
+      if (index === 0) {
+        return;
+      } // Skip first lane (no divider above it)
 
       const prevLane = this.processData.lanes[index - 1];
       const dividerY = prevLane.y + (prevLane.height || 140) + 5; // Position between lanes
@@ -639,7 +763,7 @@ export class SwimLaneRenderer {
           const segmentLength = segmentEndX - startX;
           const numBuoys = Math.floor(segmentLength / 40);
           for (let i = 0; i <= numBuoys; i++) {
-            const buoyX = startX + (i * 40);
+            const buoyX = startX + i * 40;
             if (buoyX <= segmentEndX) {
               const buoy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
               buoy.setAttribute('cx', buoyX);
@@ -665,9 +789,10 @@ export class SwimLaneRenderer {
     if (sortedPhases.length > 0) {
       sortedPhases.forEach((phase, index) => {
         const phaseLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        const labelX = index === 0 ?
-          (20 + phase.position) / 2 :
-          (sortedPhases[index - 1].position + phase.position) / 2;
+        const labelX =
+          index === 0
+            ? (20 + phase.position) / 2
+            : (sortedPhases[index - 1].position + phase.position) / 2;
 
         phaseLabel.setAttribute('x', labelX);
         phaseLabel.setAttribute('y', '30');
@@ -701,7 +826,7 @@ export class SwimLaneRenderer {
     }
 
     // Find the maximum phase position
-    const maxPosition = Math.max(...this.processData.phases.map(p => p.position));
+    const maxPosition = Math.max(...this.processData.phases.map((p) => p.position));
     // Add some padding
     return maxPosition + 40;
   }
@@ -718,7 +843,7 @@ export class SwimLaneRenderer {
         finalPosition = 400; // Default for first phase (10 circles)
       } else {
         // Find the maximum position and add 400 (10 circles default)
-        const maxPosition = Math.max(...this.processData.phases.map(p => p.position));
+        const maxPosition = Math.max(...this.processData.phases.map((p) => p.position));
         finalPosition = maxPosition + 400; // No cap - extends as needed
       }
     }
@@ -758,6 +883,39 @@ export class SwimLaneRenderer {
 
   getProcessData() {
     return this.processData;
+  }
+
+  cleanupEventListeners() {
+    // Clean up tooltip and anchor handlers from all nodes
+    const nodeGroups = this.nodesGroup.querySelectorAll('.process-node');
+    nodeGroups.forEach((nodeGroup) => {
+      // Clean up tooltip handlers
+      if (nodeGroup._tooltipData) {
+        nodeGroup.removeEventListener('mouseenter', nodeGroup._tooltipData.showTooltip);
+        nodeGroup.removeEventListener('mouseleave', nodeGroup._tooltipData.hideTooltip);
+        nodeGroup.removeEventListener('mousemove', nodeGroup._tooltipData.moveTooltip);
+        if (nodeGroup._tooltipData.tooltip) {
+          nodeGroup._tooltipData.tooltip.remove();
+        }
+        delete nodeGroup._tooltipData;
+      }
+      // Clean up anchor handlers
+      if (nodeGroup._anchorHandlers) {
+        nodeGroup.removeEventListener('mouseenter', nodeGroup._anchorHandlers.handleAnchorShow);
+        nodeGroup.removeEventListener('mouseleave', nodeGroup._anchorHandlers.handleAnchorHide);
+        delete nodeGroup._anchorHandlers;
+      }
+    });
+
+    // Clean up any remaining tooltips
+    document.querySelectorAll('.node-tooltip').forEach((t) => t.remove());
+  }
+
+  cleanup() {
+    // Complete cleanup method for the component
+    this.cleanupEventListeners();
+    this.clear();
+    this.processData = null;
   }
 }
 

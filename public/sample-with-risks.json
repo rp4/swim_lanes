@@ -1,0 +1,113 @@
+{
+  "title": "Order Processing with Risk Management",
+  "lanes": [
+    {
+      "id": "lane_1",
+      "name": "Customer Service",
+      "color": "#64b5f6",
+      "nodes": [
+        {
+          "id": "node_1",
+          "text": "Receive Order",
+          "type": "start",
+          "position": { "x": 150, "y": 70 },
+          "risks": [
+            {
+              "id": "risk_1",
+              "text": "Invalid order data",
+              "level": "medium",
+              "description": "Customer may provide incorrect information",
+              "controlIds": ["control_1"]
+            }
+          ],
+          "controls": [
+            {
+              "id": "control_1",
+              "text": "Data validation",
+              "type": "preventive",
+              "description": "Automated validation of order fields"
+            }
+          ]
+        },
+        {
+          "id": "node_2",
+          "text": "Verify Payment",
+          "type": "process",
+          "position": { "x": 350, "y": 70 },
+          "risks": [
+            {
+              "id": "risk_2",
+              "text": "Payment fraud",
+              "level": "high",
+              "description": "Fraudulent payment methods",
+              "controlIds": []
+            },
+            {
+              "id": "risk_3",
+              "text": "Insufficient funds",
+              "level": "medium",
+              "description": "Customer's payment may be declined",
+              "controlIds": ["control_2"]
+            }
+          ],
+          "controls": [
+            {
+              "id": "control_2",
+              "text": "Payment gateway verification",
+              "type": "detective",
+              "description": "Real-time payment verification"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lane_2",
+      "name": "Warehouse",
+      "color": "#4fc3f7",
+      "nodes": [
+        {
+          "id": "node_3",
+          "text": "Pick Items",
+          "type": "process",
+          "position": { "x": 550, "y": 70 },
+          "risks": [
+            {
+              "id": "risk_4",
+              "text": "Wrong items selected",
+              "level": "low",
+              "description": "Human error in picking process",
+              "controlIds": ["control_3", "control_4"]
+            }
+          ],
+          "controls": [
+            {
+              "id": "control_3",
+              "text": "Barcode scanning",
+              "type": "preventive",
+              "description": "Scan verification during picking"
+            },
+            {
+              "id": "control_4",
+              "text": "Quality check",
+              "type": "detective",
+              "description": "Final verification before shipping"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "node_1",
+      "to": "node_2",
+      "label": "Valid order"
+    },
+    {
+      "from": "node_2",
+      "to": "node_3",
+      "label": "Payment approved"
+    }
+  ]
+}

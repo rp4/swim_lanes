@@ -143,24 +143,22 @@ body::before {
     cursor: grabbing;
 }
 
-.draggable-node[data-node-type="risk"] {
-    background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
-    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.25);
-    border-radius: 0;
+/* Draggable Add Step button */
+.draggable-step {
+    cursor: grab !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.draggable-node[data-node-type="risk"]:hover {
-    box-shadow: 0 6px 20px rgba(244, 67, 54, 0.35);
+.draggable-step:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
 }
 
-.draggable-node[data-node-type="control"] {
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.25);
+.draggable-step.dragging {
+    opacity: 0.5;
+    cursor: grabbing !important;
 }
 
-.draggable-node[data-node-type="control"]:hover {
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.35);
-}
 
 .draggable-node .icon {
     font-size: 16px;

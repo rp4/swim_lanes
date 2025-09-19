@@ -1,7 +1,10 @@
 export class LandingPage {
   constructor(config = {}) {
     // Support both direct config and callback-based initialization
-    if (typeof config === 'function' || (arguments.length === 2 && typeof arguments[0] === 'function')) {
+    if (
+      typeof config === 'function' ||
+      (arguments.length === 2 && typeof arguments[0] === 'function')
+    ) {
       // Legacy SwimLaneLandingPage compatibility mode
       const onStart = arguments[0];
       const onFileLoad = arguments[1];
@@ -18,7 +21,7 @@ export class LandingPage {
         footerLinks: [],
         className: '',
         containerClassName: '',
-        ...config
+        ...config,
       };
     }
 
@@ -42,7 +45,8 @@ export class LandingPage {
           {
             icon: this.createLockIcon(),
             title: 'Local Processing Only',
-            content: 'All processing happens in your browser. Your diagrams never leave your device unless you explicitly export them.'
+            content:
+              'All processing happens in your browser. Your diagrams never leave your device unless you explicitly export them.',
           },
           {
             icon: this.createDatabaseIcon(),
@@ -51,23 +55,23 @@ export class LandingPage {
               'No tracking or analytics',
               'No cookies or local storage',
               'No server uploads',
-              'Complete privacy'
-            ]
-          }
-        ]
+              'Complete privacy',
+            ],
+          },
+        ],
       },
       actions: [
         {
           label: 'Start New Diagram',
           onClick: onStart,
           variant: 'primary',
-          icon: this.createFileTextIcon()
+          icon: this.createFileTextIcon(),
         },
         {
           label: 'Load from File',
           variant: 'secondary',
-          icon: this.createUploadIcon()
-        }
+          icon: this.createUploadIcon(),
+        },
       ],
       fileUpload: {
         accept: '.json',
@@ -85,31 +89,31 @@ export class LandingPage {
           };
           reader.readAsText(file);
         },
-        dragDropEnabled: true
+        dragDropEnabled: true,
       },
       footerLinks: [
         {
           icon: this.createGithubIcon(),
           href: 'https://github.com/rp4/SwimLanes',
-          title: 'GitHub Repository'
+          title: 'GitHub Repository',
         },
         {
           icon: this.createChatGPTIcon(),
           href: 'https://chatgpt.com',
-          title: 'Run the custom GPT to create your inputs here'
+          title: 'Run the custom GPT to create your inputs here',
         },
         {
           icon: '🏆',
           href: 'https://scoreboard.audittoolbox.com',
-          title: 'See the prompt to create your inputs here'
+          title: 'See the prompt to create your inputs here',
         },
         {
           icon: '🧰',
           href: 'https://audittoolbox.com',
-          title: 'Find other audit tools here'
-        }
+          title: 'Find other audit tools here',
+        },
       ],
-      containerClassName: 'bg-white/90 backdrop-blur-md'
+      containerClassName: 'bg-white/90 backdrop-blur-md',
     };
   }
 
@@ -195,9 +199,11 @@ export class LandingPage {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      ${this.isDragging
-        ? 'border-color: #5b21b6; background: rgba(139, 92, 246, 0.1);'
-        : 'border-color: #d1d5db; background: rgba(255, 255, 255, 0.95);'}
+      ${
+        this.isDragging
+          ? 'border-color: #5b21b6; background: rgba(139, 92, 246, 0.1);'
+          : 'border-color: #d1d5db; background: rgba(255, 255, 255, 0.95);'
+      }
     `;
 
     innerContainer.innerHTML = `
@@ -211,7 +217,9 @@ export class LandingPage {
         <!-- Subtitle with optional info button -->
         <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; position: relative;">
           <p style="font-size: 1.25rem; color: #4b5563;">${this.config.subtitle}</p>
-          ${this.config.showInfoButton ? `
+          ${
+            this.config.showInfoButton
+              ? `
             <button class="info-button" style="
               background: none;
               border: none;
@@ -230,27 +238,38 @@ export class LandingPage {
             <div class="info-popup" style="display: none; position: absolute;">
               <!-- Info popup content would go here -->
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
 
         <!-- File input (hidden) -->
-        ${this.config.fileUpload ? `
+        ${
+          this.config.fileUpload
+            ? `
           <input type="file"
             accept="${this.config.fileUpload.accept || '.json'}"
             style="display: none;"
             id="landing-file-input"
           />
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Action buttons -->
-        ${this.config.actions.length > 0 ? `
+        ${
+          this.config.actions.length > 0
+            ? `
           <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-            ${this.config.actions.map((action, idx) => {
-              const isFileUploadButton = (action.label === 'Choose File' || action.label === 'Load from File') && this.config.fileUpload;
-              const buttonStyles = this.getButtonStyles(action.variant);
+            ${this.config.actions
+              .map((action, idx) => {
+                const isFileUploadButton =
+                  (action.label === 'Choose File' || action.label === 'Load from File') &&
+                  this.config.fileUpload;
+                const buttonStyles = this.getButtonStyles(action.variant);
 
-              if (isFileUploadButton) {
-                return `
+                if (isFileUploadButton) {
+                  return `
                   <label for="landing-file-input"
                     style="
                       display: inline-flex;
@@ -273,9 +292,9 @@ export class LandingPage {
                     ${action.label}
                   </label>
                 `;
-              }
+                }
 
-              return `
+                return `
                 <button
                   data-action-index="${idx}"
                   style="
@@ -299,21 +318,27 @@ export class LandingPage {
                   ${action.label}
                 </button>
               `;
-            }).join('')}
+              })
+              .join('')}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Footer links -->
-        ${this.config.footerLinks.length > 0 ? `
+        ${
+          this.config.footerLinks.length > 0
+            ? `
           <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-top: 2rem;">
-            ${this.config.footerLinks.map(link => {
-              // Check if icon is an emoji (not SVG)
-              const isEmoji = !link.icon.includes('<svg');
-              // For SVGs, wrap in a larger container
-              const iconContent = link.icon.includes('<svg')
-                ? link.icon.replace('width="24" height="24"', 'width="32" height="32"')
-                : link.icon;
-              return `
+            ${this.config.footerLinks
+              .map((link) => {
+                // Check if icon is an emoji (not SVG)
+                const isEmoji = !link.icon.includes('<svg');
+                // For SVGs, wrap in a larger container
+                const iconContent = link.icon.includes('<svg')
+                  ? link.icon.replace('width="24" height="24"', 'width="32" height="32"')
+                  : link.icon;
+                return `
                 <a href="${link.href}"
                   target="${link.target || '_blank'}"
                   rel="noopener noreferrer"
@@ -331,9 +356,12 @@ export class LandingPage {
                   ${iconContent}
                 </a>
               `;
-            }).join('')}
+              })
+              .join('')}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
 
@@ -388,7 +416,7 @@ export class LandingPage {
     }
 
     // Handle action button clicks
-    container.querySelectorAll('button[data-action-index]').forEach(button => {
+    container.querySelectorAll('button[data-action-index]').forEach((button) => {
       button.addEventListener('click', () => {
         const index = parseInt(button.dataset.actionIndex);
         const action = this.config.actions[index];
@@ -426,7 +454,9 @@ export class LandingPage {
   }
 
   renderInfoPopup(popupElement) {
-    if (!this.config.infoPopup) return;
+    if (!this.config.infoPopup) {
+      return;
+    }
 
     // Position the popup to the side with fixed positioning to stay in viewport
     popupElement.style.cssText = `
@@ -451,46 +481,70 @@ export class LandingPage {
     popupElement.innerHTML = `
       <!-- Header with shield icon -->
       <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-        ${this.config.infoPopup.icon ? `
+        ${
+          this.config.infoPopup.icon
+            ? `
           <div style="width: 3rem; height: 3rem; background: #dbeafe; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             ${this.config.infoPopup.icon}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
         <h3 style="font-size: 1.5rem; font-weight: 600; color: #111827; margin: 0;">
           ${this.config.infoPopup.title}
         </h3>
       </div>
 
       <!-- Sections -->
-      ${this.config.infoPopup.sections.map((section, idx) => `
+      ${this.config.infoPopup.sections
+        .map(
+          (section, idx) => `
         <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: ${idx < this.config.infoPopup.sections.length - 1 ? '1.5rem' : '0'};">
-          ${section.icon ? `
+          ${
+            section.icon
+              ? `
             <div style="width: 2.5rem; height: 2.5rem; background: #e5e7eb; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.25rem;">
               ${section.icon}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
           <div style="flex: 1;">
             <h4 style="font-size: 1.125rem; font-weight: 600; color: #111827; margin: 0 0 0.5rem 0;">
               ${section.title}
             </h4>
-            ${section.content ? `
+            ${
+              section.content
+                ? `
               <p style="color: #6b7280; margin: 0 0 0.5rem 0; line-height: 1.5;">
                 ${section.content}
               </p>
-            ` : ''}
-            ${section.bullets ? `
+            `
+                : ''
+            }
+            ${
+              section.bullets
+                ? `
               <ul style="list-style: none; padding: 0; margin: 0;">
-                ${section.bullets.map(bullet => `
+                ${section.bullets
+                  .map(
+                    (bullet) => `
                   <li style="color: #6b7280; margin-bottom: 0.5rem; padding-left: 1.25rem; position: relative;">
                     <span style="position: absolute; left: 0;">•</span>
                     ${bullet}
                   </li>
-                `).join('')}
+                `,
+                  )
+                  .join('')}
               </ul>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
         </div>
-      `).join('')}
+      `,
+        )
+        .join('')}
     `;
   }
 

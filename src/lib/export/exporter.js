@@ -15,11 +15,13 @@ export class ProcessExporter {
   exportToJSON(processData) {
     const exportData = {
       title: processData.title,
-      phases: processData.phases ? processData.phases.map((phase) => ({
-        id: phase.id,
-        name: phase.name,
-        position: phase.position,
-      })) : [],
+      phases: processData.phases
+        ? processData.phases.map((phase) => ({
+            id: phase.id,
+            name: phase.name,
+            position: phase.position,
+          }))
+        : [],
       lanes: processData.lanes.map((lane) => ({
         id: lane.id,
         name: lane.name,
@@ -34,6 +36,19 @@ export class ProcessExporter {
             x: node.position.x,
             y: node.position.y,
           },
+          // Include risks with embedded controls
+          risks: node.risks ? node.risks.map((risk) => ({
+            id: risk.id,
+            text: risk.text,
+            level: risk.level,
+            description: risk.description || '',
+            controls: risk.controls ? risk.controls.map((control) => ({
+              id: control.id,
+              text: control.text,
+              type: control.type,
+              description: control.description || ''
+            })) : []
+          })) : [],
           // Don't export color - it should be determined by type
           metadata: node.metadata || {},
         })),

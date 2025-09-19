@@ -7,6 +7,7 @@ import { KeyboardManager } from './core/services/KeyboardManager.js';
 import { UrlParamsHandler } from './core/services/UrlParamsHandler.js';
 import { ErrorHandler } from './core/services/ErrorHandler.js';
 import { LandingPage } from './components/landing/LandingPage.js';
+import { RiskDetailsModal } from './components/modals/RiskDetailsModal.js';
 import './styles/base/main.css';
 
 class SwimLaneApp {
@@ -21,12 +22,15 @@ class SwimLaneApp {
     this.controls = null;
     this.keyboardManager = null;
     this.urlParamsHandler = null;
+    this.riskDetailsModal = null;
 
     this.init();
   }
 
   initializeDiagram() {
-    if (this.initialized) return;
+    if (this.initialized) {
+      return;
+    }
 
     this.svg = document.getElementById('diagramSvg');
     this.parser = new ProcessParser();
@@ -37,6 +41,16 @@ class SwimLaneApp {
 
     this.keyboardManager = new KeyboardManager(this);
     this.urlParamsHandler = new UrlParamsHandler(this);
+    this.riskDetailsModal = new RiskDetailsModal();
+
+    // Listen for risk updates and re-render
+    document.addEventListener('riskDetailsUpdated', (e) => {
+      // Update the node with the new risk data
+      if (e.detail.nodeId && e.detail.risks !== undefined) {
+        this.renderer.updateNode(e.detail.nodeId, { risks: e.detail.risks });
+      }
+      this.editor.saveState();
+    });
 
     this.keyboardManager.setupKeyboardShortcuts();
     this.initialized = true;
@@ -66,7 +80,7 @@ class SwimLaneApp {
               }
             } catch (error) {
               console.error('Error parsing JSON:', error);
-              alert('Invalid JSON file: ' + error.message);
+              alert(`Invalid JSON file: ${error.message}`);
             }
           };
           reader.readAsText(file);
@@ -93,7 +107,8 @@ class SwimLaneApp {
                 <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
               </svg>`,
               title: 'Browser-Based Storage',
-              content: 'This application stores all schedule data locally in your browser\'s localStorage. No data is ever sent to any server.'
+              content:
+                "This application stores all schedule data locally in your browser's localStorage. No data is ever sent to any server.",
             },
             {
               icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
@@ -105,11 +120,11 @@ class SwimLaneApp {
               bullets: [
                 'Your data stays on this device only',
                 'Clearing browser data will delete your schedules',
-                'Different browsers/devices won\'t share data',
-                'We cannot recover lost data'
-              ]
-            }
-          ]
+                "Different browsers/devices won't share data",
+                'We cannot recover lost data',
+              ],
+            },
+          ],
         },
         fileUpload: {
           accept: '.json',
@@ -128,7 +143,7 @@ class SwimLaneApp {
             };
             reader.readAsText(file);
           },
-          dragDropEnabled: true
+          dragDropEnabled: true,
         },
         actions: [
           {
@@ -137,7 +152,7 @@ class SwimLaneApp {
             variant: 'primary',
             onClick: () => {
               fileInput.click();
-            }
+            },
           },
           {
             label: 'Load Sample Process',
@@ -150,8 +165,8 @@ class SwimLaneApp {
               this.landingPage.remove();
               document.querySelector('#dropZone').style.display = 'none';
               document.querySelector('#swimlaneCanvas').style.display = 'block';
-            }
-          }
+            },
+          },
         ],
         footerLinks: [
           {
@@ -160,7 +175,7 @@ class SwimLaneApp {
             </svg>`,
             href: 'https://github.com/rp4/SwimLanes',
             title: 'GitHub Repository',
-            target: '_blank'
+            target: '_blank',
           },
           {
             icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -168,21 +183,21 @@ class SwimLaneApp {
             </svg>`,
             href: 'https://chatgpt.com',
             title: 'Run the custom GPT to create your inputs here',
-            target: '_blank'
+            target: '_blank',
           },
           {
             icon: '🏆',
             href: 'https://scoreboard.audittoolbox.com',
             title: 'See the prompt to create your inputs here',
-            target: '_blank'
+            target: '_blank',
           },
           {
             icon: '🧰',
             href: 'https://audittoolbox.com',
             title: 'Find other audit tools here',
-            target: '_blank'
-          }
-        ]
+            target: '_blank',
+          },
+        ],
       });
 
       document.body.appendChild(this.landingPage.render());

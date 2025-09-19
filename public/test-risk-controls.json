@@ -1,0 +1,121 @@
+{
+  "title": "Risk Management Test Process",
+  "lanes": [
+    {
+      "id": "lane_1",
+      "name": "Business Operations",
+      "color": "#64b5f6",
+      "nodes": [
+        {
+          "id": "node_1",
+          "text": "Initiate Process",
+          "type": "start",
+          "position": { "x": 150, "y": 50 },
+          "risks": [
+            {
+              "id": "risk_1",
+              "text": "Process delays",
+              "level": "high",
+              "description": "Process may be delayed due to resource constraints",
+              "controls": [
+                {
+                  "id": "control_1",
+                  "text": "Resource allocation review",
+                  "type": "preventive",
+                  "description": "Weekly review of resource allocation"
+                },
+                {
+                  "id": "control_2",
+                  "text": "Automated alerts",
+                  "type": "detective",
+                  "description": "System alerts when delays exceed threshold"
+                }
+              ]
+            },
+            {
+              "id": "risk_2",
+              "text": "Data quality issues",
+              "level": "medium",
+              "description": "Input data may contain errors",
+              "controls": [
+                {
+                  "id": "control_3",
+                  "text": "Data validation rules",
+                  "type": "preventive",
+                  "description": "Automated validation of input data"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "node_2",
+          "text": "Execute Main Process",
+          "type": "process",
+          "position": { "x": 400, "y": 50 },
+          "risks": [
+            {
+              "id": "risk_3",
+              "text": "System failure",
+              "level": "critical",
+              "description": "Core system may experience downtime",
+              "controls": [
+                {
+                  "id": "control_4",
+                  "text": "Redundant systems",
+                  "type": "preventive",
+                  "description": "Backup systems ready for failover"
+                },
+                {
+                  "id": "control_5",
+                  "text": "Monitoring dashboard",
+                  "type": "detective",
+                  "description": "Real-time system health monitoring"
+                },
+                {
+                  "id": "control_6",
+                  "text": "Incident response plan",
+                  "type": "corrective",
+                  "description": "Documented procedures for system recovery"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lane_2",
+      "name": "IT Department",
+      "color": "#81c784",
+      "nodes": [
+        {
+          "id": "node_3",
+          "text": "Review Request",
+          "type": "decision",
+          "position": { "x": 650, "y": 50 },
+          "risks": [
+            {
+              "id": "risk_4",
+              "text": "Incomplete review",
+              "level": "low",
+              "description": "Review process may miss critical issues",
+              "controls": []
+            }
+          ]
+        },
+        {
+          "id": "node_4",
+          "text": "Complete Process",
+          "type": "end",
+          "position": { "x": 900, "y": 50 }
+        }
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "node_1", "to": "node_2", "label": "Start" },
+    { "from": "node_2", "to": "node_3", "label": "Review" },
+    { "from": "node_3", "to": "node_4", "label": "Approved" }
+  ]
+}

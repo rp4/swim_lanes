@@ -165,7 +165,7 @@ export class ValidationService {
    * @returns {Object} Validated node
    */
   static validateNode(node) {
-    const validTypes = ['start', 'process', 'decision', 'end', 'risk', 'control'];
+    const validTypes = ['start', 'process', 'decision', 'end'];
 
     return {
       id: this.sanitizeId(node.id),
@@ -173,7 +173,8 @@ export class ValidationService {
       type: validTypes.includes(node.type) ? node.type : 'process',
       description: this.sanitizeText(node.description || ''),
       position: this.validatePosition(node.position),
-      riskLevel: this.sanitizeRiskLevel(node.riskLevel),
+      risks: this.validateRisks(node.risks),
+      controls: this.validateControls(node.controls),
     };
   }
 
@@ -251,13 +252,38 @@ export class ValidationService {
   }
 
   /**
-   * Sanitize risk level
-   * @param {string} riskLevel - Risk level to sanitize
-   * @returns {string} Valid risk level
+   * Validate risks array
+   * @param {Array} risks - Risks to validate
+   * @returns {Array} Validated risks
    */
-  static sanitizeRiskLevel(riskLevel) {
-    const validLevels = ['low', 'medium', 'high', 'critical'];
-    return validLevels.includes(riskLevel) ? riskLevel : undefined;
+  static validateRisks(risks) {
+    if (!Array.isArray(risks)) {
+      return [];
+    }
+    return risks.map(risk => ({
+      id: this.sanitizeId(risk.id || `risk_${Date.now()}_${Math.random()}`),
+      text: this.sanitizeText(risk.text || 'Unnamed risk'),
+      level: ['low', 'medium', 'high', 'critical'].includes(risk.level) ? risk.level : 'medium',
+      description: this.sanitizeText(risk.description || ''),
+      controlIds: Array.isArray(risk.controlIds) ? risk.controlIds.map(id => this.sanitizeId(id)) : []
+    }));
+  }
+
+  /**
+   * Validate controls array
+   * @param {Array} controls - Controls to validate
+   * @returns {Array} Validated controls
+   */
+  static validateControls(controls) {
+    if (!Array.isArray(controls)) {
+      return [];
+    }
+    return controls.map(control => ({
+      id: this.sanitizeId(control.id || `control_${Date.now()}_${Math.random()}`),
+      text: this.sanitizeText(control.text || 'Unnamed control'),
+      type: ['preventive', 'detective', 'corrective'].includes(control.type) ? control.type : 'preventive',
+      description: this.sanitizeText(control.description || '')
+    }));
   }
 
   /**

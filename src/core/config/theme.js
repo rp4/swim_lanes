@@ -10,8 +10,6 @@ export const Theme = {
       process: '#2196f3',
       decision: '#ff9800',
       end: '#f44336',
-      risk: '#f44336',
-      control: '#4caf50',
       default: '#2196f3',
     },
     icons: {
@@ -19,8 +17,6 @@ export const Theme = {
       process: '',
       decision: '',
       end: '',
-      risk: '',
-      control: '',
       default: '',
     },
     /**

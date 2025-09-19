@@ -15,29 +15,19 @@ export class DiagramControls {
   hideToolbarButtons() {
     // Hide all toolbar buttons initially (on landing screen)
     const toolGroups = document.querySelectorAll('.tool-group');
-    const nodePalette = document.querySelector('.node-palette');
 
-    toolGroups.forEach(group => {
+    toolGroups.forEach((group) => {
       group.style.display = 'none';
     });
-
-    if (nodePalette) {
-      nodePalette.style.display = 'none';
-    }
   }
 
   showToolbarButtons() {
     // Show toolbar buttons when a process is loaded
     const toolGroups = document.querySelectorAll('.tool-group');
-    const nodePalette = document.querySelector('.node-palette');
 
-    toolGroups.forEach(group => {
+    toolGroups.forEach((group) => {
       group.style.display = 'flex';
     });
-
-    if (nodePalette) {
-      nodePalette.style.display = 'flex';
-    }
   }
 
   setupControls() {
@@ -193,27 +183,26 @@ export class DiagramControls {
       }
     });
 
-    // Setup draggable nodes from palette
-    this.setupNodePaletteDragAndDrop();
+    // Setup draggable Add Step button
+    this.setupAddStepDragAndDrop();
   }
 
-  setupNodePaletteDragAndDrop() {
-    const draggableNodes = document.querySelectorAll('.draggable-node');
+  setupAddStepDragAndDrop() {
+    const addStepBtn = document.getElementById('addStepBtn');
     const svg = document.getElementById('diagramSvg');
     const swimlanes = document.getElementById('swimlanes');
 
-    draggableNodes.forEach((node) => {
-      node.addEventListener('dragstart', (e) => {
-        const nodeType = node.getAttribute('data-node-type');
+    if (addStepBtn) {
+      addStepBtn.addEventListener('dragstart', (e) => {
         e.dataTransfer.effectAllowed = 'copy';
-        e.dataTransfer.setData('node-type', nodeType);
-        node.classList.add('dragging');
+        e.dataTransfer.setData('node-type', 'process');
+        addStepBtn.classList.add('dragging');
       });
 
-      node.addEventListener('dragend', (e) => {
-        node.classList.remove('dragging');
+      addStepBtn.addEventListener('dragend', (e) => {
+        addStepBtn.classList.remove('dragging');
       });
-    });
+    }
 
     // Allow dropping on swim lanes
     svg.addEventListener('dragover', (e) => {
@@ -299,10 +288,12 @@ export class DiagramControls {
 
   getDefaultNodeText(nodeType) {
     switch (nodeType) {
-      case 'risk':
-        return 'New Risk';
-      case 'control':
-        return 'New Control';
+      case 'start':
+        return 'Start';
+      case 'end':
+        return 'End';
+      case 'decision':
+        return 'Decision';
       default:
         return 'New Step';
     }
@@ -365,7 +356,7 @@ export class DiagramControls {
 
         if (phases.length > 0) {
           // Find the maximum position (end of last phase)
-          const maxPosition = Math.max(...phases.map(p => p.position));
+          const maxPosition = Math.max(...phases.map((p) => p.position));
           startPosition = maxPosition;
         }
 
@@ -396,7 +387,7 @@ export class DiagramControls {
       const selectedLane = lanes[parseInt(laneIndex) - 1];
       if (selectedLane) {
         const nodeText = prompt('Enter node text:') || 'New Node';
-        const nodeType = prompt('Enter node type (process/risk/control):') || 'process';
+        const nodeType = prompt('Enter node type (process/start/end/decision):') || 'process';
 
         this.editor.saveState();
         const node = this.renderer.addNode(selectedLane.id, nodeType, nodeText);
