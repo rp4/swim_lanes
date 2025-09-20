@@ -8,7 +8,7 @@ export class RiskDetailsModal {
     this.onSave = null;
     // Store bound handler for proper cleanup
     this.boundHandlers = {
-      handleRiskBadgeClick: this.handleRiskBadgeClick.bind(this)
+      handleRiskBadgeClick: this.handleRiskBadgeClick.bind(this),
     };
     this.setupEventListeners();
   }
@@ -47,31 +47,31 @@ export class RiskDetailsModal {
       const controlsMap = {};
 
       // Create a map of controls by ID
-      this.currentNode.controls.forEach(control => {
+      this.currentNode.controls.forEach((control) => {
         controlsMap[control.id] = control;
       });
 
       // Migrate risks to embed controls
       if (this.currentNode.risks && Array.isArray(this.currentNode.risks)) {
-        this.currentNode.risks = this.currentNode.risks.map(risk => {
+        this.currentNode.risks = this.currentNode.risks.map((risk) => {
           // If risk has controlIds, convert them to embedded controls
           if (risk.controlIds && Array.isArray(risk.controlIds)) {
             const embeddedControls = risk.controlIds
-              .map(controlId => controlsMap[controlId])
-              .filter(control => control); // Filter out undefined controls
+              .map((controlId) => controlsMap[controlId])
+              .filter((control) => control); // Filter out undefined controls
 
             // Return risk with embedded controls
             return {
               ...risk,
               controls: embeddedControls,
-              controlIds: undefined // Remove old property
+              controlIds: undefined, // Remove old property
             };
           }
 
           // If risk already has controls array, keep it as is
           return {
             ...risk,
-            controls: risk.controls || []
+            controls: risk.controls || [],
           };
         });
       }
@@ -82,9 +82,9 @@ export class RiskDetailsModal {
 
     // Ensure all risks have a controls array
     if (this.currentNode.risks && Array.isArray(this.currentNode.risks)) {
-      this.currentNode.risks = this.currentNode.risks.map(risk => ({
+      this.currentNode.risks = this.currentNode.risks.map((risk) => ({
         ...risk,
-        controls: risk.controls || []
+        controls: risk.controls || [],
       }));
     }
   }
@@ -107,7 +107,7 @@ export class RiskDetailsModal {
         <div class="risk-modal-body">
           <div class="node-info">
             <h3>${this.currentNode.text}</h3>
-            <span class="node-type-badge">${this.isConnection ? (this.currentNode.label || 'Connection') : this.currentNode.type}</span>
+            <span class="node-type-badge">${this.isConnection ? this.currentNode.label || 'Connection' : this.currentNode.type}</span>
           </div>
 
           <div class="risks-section">
@@ -188,8 +188,9 @@ export class RiskDetailsModal {
       return '<p class="no-controls-message">No controls defined for this risk</p>';
     }
 
-    return controls.map((control, controlIndex) => {
-      return `
+    return controls
+      .map(
+        (control, controlIndex) => `
         <div class="control-item" data-control-id="${control.id}" data-risk-index="${riskIndex}" data-control-index="${controlIndex}">
           <div class="control-header">
             <div class="control-indicator">🛡️</div>
@@ -203,8 +204,9 @@ export class RiskDetailsModal {
           </div>
           <textarea class="control-description" placeholder="Control description">${control.description || ''}</textarea>
         </div>
-      `;
-    }).join('');
+      `,
+      )
+      .join('');
   }
 
   addControlToRisk(riskIndex) {
@@ -219,7 +221,7 @@ export class RiskDetailsModal {
       id: `control_${Date.now()}`,
       text: 'New Control',
       type: 'preventive',
-      description: ''
+      description: '',
     };
 
     this.currentNode.risks[riskIndex].controls.push(newControl);
@@ -279,7 +281,9 @@ export class RiskDetailsModal {
 
   saveFormDataToModel() {
     // Only save if modal exists
-    if (!this.modal) return;
+    if (!this.modal) {
+      return;
+    }
 
     // Save all current form values to the data model before re-rendering
     const riskItems = this.modal.querySelectorAll('.risk-item');
@@ -291,15 +295,23 @@ export class RiskDetailsModal {
         const riskLevel = item.querySelector('.risk-level');
         const riskDescription = item.querySelector('.risk-description');
 
-        if (riskText) this.currentNode.risks[index].text = riskText.value;
-        if (riskLevel) this.currentNode.risks[index].level = riskLevel.value;
-        if (riskDescription) this.currentNode.risks[index].description = riskDescription.value;
+        if (riskText) {
+          this.currentNode.risks[index].text = riskText.value;
+        }
+        if (riskLevel) {
+          this.currentNode.risks[index].level = riskLevel.value;
+        }
+        if (riskDescription) {
+          this.currentNode.risks[index].description = riskDescription.value;
+        }
 
         // Save control data
         const controlItems = item.querySelectorAll('.control-item');
         controlItems.forEach((controlEl, controlIndex) => {
-          if (this.currentNode.risks[index].controls &&
-              this.currentNode.risks[index].controls[controlIndex]) {
+          if (
+            this.currentNode.risks[index].controls &&
+            this.currentNode.risks[index].controls[controlIndex]
+          ) {
             const controlText = controlEl.querySelector('.control-text');
             const controlType = controlEl.querySelector('.control-type');
             const controlDescription = controlEl.querySelector('.control-description');
@@ -311,7 +323,8 @@ export class RiskDetailsModal {
               this.currentNode.risks[index].controls[controlIndex].type = controlType.value;
             }
             if (controlDescription) {
-              this.currentNode.risks[index].controls[controlIndex].description = controlDescription.value;
+              this.currentNode.risks[index].controls[controlIndex].description =
+                controlDescription.value;
             }
           }
         });
@@ -332,7 +345,7 @@ export class RiskDetailsModal {
       text: 'New Risk',
       level: 'medium',
       description: '',
-      controls: []
+      controls: [],
     };
 
     this.currentNode.risks.push(newRisk);
@@ -343,10 +356,12 @@ export class RiskDetailsModal {
     // Save current form data before re-rendering
     this.saveFormDataToModel();
 
-    if (this.currentNode.risks &&
-        this.currentNode.risks[riskIndex] &&
-        this.currentNode.risks[riskIndex].controls &&
-        this.currentNode.risks[riskIndex].controls[controlIndex]) {
+    if (
+      this.currentNode.risks &&
+      this.currentNode.risks[riskIndex] &&
+      this.currentNode.risks[riskIndex].controls &&
+      this.currentNode.risks[riskIndex].controls[controlIndex]
+    ) {
       this.currentNode.risks[riskIndex].controls.splice(controlIndex, 1);
       this.populateModal();
     }
@@ -362,7 +377,6 @@ export class RiskDetailsModal {
     }
   }
 
-
   save() {
     // Collect updated data from form
     const riskItems = this.modal.querySelectorAll('.risk-item');
@@ -374,21 +388,19 @@ export class RiskDetailsModal {
 
       // Collect controls for this risk
       const controlElements = item.querySelectorAll('.control-item');
-      const controls = Array.from(controlElements).map((controlEl) => {
-        return {
-          id: controlEl.dataset.controlId,
-          text: controlEl.querySelector('.control-text').value,
-          type: controlEl.querySelector('.control-type').value,
-          description: controlEl.querySelector('.control-description').value
-        };
-      });
+      const controls = Array.from(controlElements).map((controlEl) => ({
+        id: controlEl.dataset.controlId,
+        text: controlEl.querySelector('.control-text').value,
+        type: controlEl.querySelector('.control-type').value,
+        description: controlEl.querySelector('.control-description').value,
+      }));
 
       return {
         id: riskId,
         text: item.querySelector('.risk-text').value,
         level: item.querySelector('.risk-level').value,
         description: item.querySelector('.risk-description').value,
-        controls: controls
+        controls,
       };
     });
 
@@ -398,16 +410,16 @@ export class RiskDetailsModal {
         detail: {
           fromId: this.fromId,
           toId: this.toId,
-          risks: updatedRisks
-        }
+          risks: updatedRisks,
+        },
       });
       document.dispatchEvent(event);
     } else {
       const event = new CustomEvent('riskDetailsUpdated', {
         detail: {
           nodeId: this.nodeId,
-          risks: updatedRisks
-        }
+          risks: updatedRisks,
+        },
       });
       document.dispatchEvent(event);
     }

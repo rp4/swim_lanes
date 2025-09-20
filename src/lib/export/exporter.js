@@ -37,18 +37,22 @@ export class ProcessExporter {
             y: node.position.y,
           },
           // Include risks with embedded controls
-          risks: node.risks ? node.risks.map((risk) => ({
-            id: risk.id,
-            text: risk.text,
-            level: risk.level,
-            description: risk.description || '',
-            controls: risk.controls ? risk.controls.map((control) => ({
-              id: control.id,
-              text: control.text,
-              type: control.type,
-              description: control.description || ''
-            })) : []
-          })) : [],
+          risks: node.risks
+            ? node.risks.map((risk) => ({
+                id: risk.id,
+                text: risk.text,
+                level: risk.level,
+                description: risk.description || '',
+                controls: risk.controls
+                  ? risk.controls.map((control) => ({
+                      id: control.id,
+                      text: control.text,
+                      type: control.type,
+                      description: control.description || '',
+                    }))
+                  : [],
+              }))
+            : [],
           // Don't export color - it should be determined by type
           metadata: node.metadata || {},
         })),
@@ -58,18 +62,22 @@ export class ProcessExporter {
         to: conn.to,
         label: conn.label || '',
         // Include risks with embedded controls for connections
-        risks: conn.risks ? conn.risks.map((risk) => ({
-          id: risk.id,
-          text: risk.text,
-          level: risk.level,
-          description: risk.description || '',
-          controls: risk.controls ? risk.controls.map((control) => ({
-            id: control.id,
-            text: control.text,
-            type: control.type,
-            description: control.description || ''
-          })) : []
-        })) : [],
+        risks: conn.risks
+          ? conn.risks.map((risk) => ({
+              id: risk.id,
+              text: risk.text,
+              level: risk.level,
+              description: risk.description || '',
+              controls: risk.controls
+                ? risk.controls.map((control) => ({
+                    id: control.id,
+                    text: control.text,
+                    type: control.type,
+                    description: control.description || '',
+                  }))
+                : [],
+            }))
+          : [],
       })),
       metadata: processData.metadata || {},
     };

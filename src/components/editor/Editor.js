@@ -1,4 +1,5 @@
 import { NotificationService } from '../../core/services/NotificationService.js';
+import { throttleRAF, debounce } from '../../core/utils/rateLimiter.js';
 
 export class DiagramEditor {
   constructor(renderer) {
@@ -15,6 +16,10 @@ export class DiagramEditor {
     this.maxHistory = 50;
     // Store bound handlers for cleanup
     this.boundHandlers = {};
+
+    // Create throttled versions of performance-critical methods
+    this.throttledDragNode = throttleRAF(this.dragNodeImpl.bind(this));
+    this.debouncedSaveState = debounce(this.saveState.bind(this), 500);
 
     this.setupEventListeners();
   }
@@ -226,6 +231,11 @@ export class DiagramEditor {
   }
 
   dragNode(e) {
+    // Use throttled version for better performance
+    this.throttledDragNode(e);
+  }
+
+  dragNodeImpl(e) {
     if (!this.draggedNode) {
       return;
     }
@@ -235,20 +245,30 @@ export class DiagramEditor {
 
     const svgPoint = this.getSVGPoint(e);
 
+    // Update node position
     node.position.x = svgPoint.x - this.dragOffset.x;
     node.position.y = svgPoint.y - this.dragOffset.y;
 
-    const laneId = this.getLaneAtPosition(node.position.y);
-    if (laneId && laneId !== this.draggedNode.getAttribute('data-lane-id')) {
-      this.moveNodeToLane(nodeId, laneId);
+    // Check if node moved to a different lane
+    const currentLaneId = this.draggedNode.getAttribute('data-lane-id');
+    const newLaneId = this.getLaneAtPosition(node.position.y);
+    if (newLaneId && newLaneId !== currentLaneId) {
+      this.moveNodeToLane(nodeId, newLaneId);
+      // Update the data attribute after moving
+      this.draggedNode.setAttribute('data-lane-id', newLaneId);
     }
 
-    this.renderer.render(this.renderer.processData);
+    // Ensure dragging class is set before render
+    this.draggedNode.classList.add('node-dragging');
 
-    const newDraggedNode = this.svg.querySelector(`[data-node-id="${nodeId}"]`);
-    if (newDraggedNode) {
-      newDraggedNode.classList.add('node-dragging');
-      this.draggedNode = newDraggedNode;
+    // Use differential rendering for better performance
+    this.renderer.render(this.renderer.processData, { forceFull: false });
+
+    // Update reference if element was replaced during render
+    const currentNode = this.svg.querySelector(`[data-node-id="${nodeId}"]`);
+    if (currentNode && currentNode !== this.draggedNode) {
+      this.draggedNode = currentNode;
+      this.draggedNode.classList.add('node-dragging');
     }
   }
 
@@ -393,7 +413,7 @@ export class DiagramEditor {
       // Show the risk modal for this node by dispatching event
       const updatedNode = this.renderer.findNode(nodeId);
       const showEvent = new CustomEvent('riskBadgeClick', {
-        detail: { node: updatedNode }
+        detail: { node: updatedNode },
       });
       document.dispatchEvent(showEvent);
 
@@ -650,14 +670,14 @@ export class DiagramEditor {
         type: 'connection',
         risks: updatedConnection.risks || [],
         isConnection: true,
-        fromId: fromId,
-        toId: toId,
-        label: updatedConnection.label
+        fromId,
+        toId,
+        label: updatedConnection.label,
       };
 
       // Dispatch event to show risk modal (handled by app.js)
       const showEvent = new CustomEvent('connectionRiskClick', {
-        detail: { connection: connectionAsNode }
+        detail: { connection: connectionAsNode },
       });
       document.dispatchEvent(showEvent);
 

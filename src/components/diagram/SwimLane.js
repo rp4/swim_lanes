@@ -15,145 +15,165 @@ export class SwimLaneRenderer {
     this.selectedLane = null;
     this.selectedPhase = null;
 
+    // Event delegation for tooltips to prevent memory leaks
+    this.tooltipElement = null;
+    this.setupEventDelegation();
+
+    // Path cache for performance
+    this.pathCache = new Map();
+    this.maxCacheSize = 100;
+
     // Arrow marker removed - edges will display without arrows
   }
 
-  addNodeTooltip(nodeGroup, node) {
-    if (!node.description || node.description.trim() === '') {
-      return;
+  setupEventDelegation() {
+    // Single delegated listener for all tooltips - prevents memory leaks
+    this.nodesGroup.addEventListener(
+      'mouseenter',
+      (e) => {
+        const nodeGroup = e.target.closest('.process-node');
+        if (nodeGroup && nodeGroup.dataset.description) {
+          this.showTooltip(e, nodeGroup.dataset.description);
+        }
+      },
+      true,
+    );
+
+    this.nodesGroup.addEventListener(
+      'mouseleave',
+      (e) => {
+        if (e.target.closest('.process-node')) {
+          this.hideTooltip();
+        }
+      },
+      true,
+    );
+
+    this.nodesGroup.addEventListener(
+      'mousemove',
+      (e) => {
+        if (this.tooltipElement && this.tooltipElement.style.display === 'block') {
+          this.tooltipElement.style.left = `${e.clientX + 10}px`;
+          this.tooltipElement.style.top = `${e.clientY - 30}px`;
+        }
+      },
+      true,
+    );
+  }
+
+  showTooltip(e, description) {
+    if (!this.tooltipElement) {
+      this.tooltipElement = document.createElement('div');
+      this.tooltipElement.className = 'node-tooltip';
+      document.body.appendChild(this.tooltipElement);
     }
 
-    let tooltip = null;
+    this.tooltipElement.textContent = description;
+    this.tooltipElement.style.left = `${e.clientX + 10}px`;
+    this.tooltipElement.style.top = `${e.clientY - 30}px`;
+    this.tooltipElement.style.display = 'block';
+  }
 
-    const showTooltip = (e) => {
-      // Create tooltip if it doesn't exist
-      if (!tooltip) {
-        tooltip = document.createElement('div');
-        tooltip.className = 'node-tooltip';
-        tooltip.textContent = node.description;
-        document.body.appendChild(tooltip);
-      }
+  hideTooltip() {
+    if (this.tooltipElement) {
+      this.tooltipElement.style.display = 'none';
+    }
+  }
 
-      // Position tooltip near the cursor
-      const x = e.clientX + 10;
-      const y = e.clientY - 30;
+  addNodeTooltip(nodeGroup, node) {
+    // Now just add data attribute for event delegation
+    if (node.description && node.description.trim() !== '') {
+      nodeGroup.dataset.description = node.description;
+    }
+  }
 
-      tooltip.style.left = `${x}px`;
-      tooltip.style.top = `${y}px`;
-      tooltip.style.display = 'block';
-    };
+  // Helper to create SVG elements more efficiently
+  createSVGElement(type) {
+    return document.createElementNS('http://www.w3.org/2000/svg', type);
+  }
 
-    const hideTooltip = () => {
-      if (tooltip) {
-        tooltip.style.display = 'none';
-      }
-    };
+  // Shared method for creating risk badges for both nodes and connections
+  createRiskBadge(x, y, risk, index, totalRisks) {
+    const hasControl =
+      (risk.controls && risk.controls.length > 0) ||
+      (risk.controlIds && risk.controlIds.length > 0);
 
-    const moveTooltip = (e) => {
-      if (tooltip && tooltip.style.display === 'block') {
-        tooltip.style.left = `${e.clientX + 10}px`;
-        tooltip.style.top = `${e.clientY - 30}px`;
-      }
-    };
+    const badgeGroup = this.createSVGElement('g');
+    badgeGroup.classList.add('risk-badge');
+    badgeGroup.dataset.riskId = risk.id;
 
-    nodeGroup.addEventListener('mouseenter', showTooltip);
-    nodeGroup.addEventListener('mouseleave', hideTooltip);
-    nodeGroup.addEventListener('mousemove', moveTooltip);
+    // Position badges in a row above the node (relative to node center)
+    const badgeSpacing = 30;
+    const startX = x - ((totalRisks - 1) * badgeSpacing) / 2;
+    const badgeX = startX + index * badgeSpacing;
+    const badgeY = y - 45; // Position above the node center
 
-    // Store handlers and tooltip for cleanup
-    nodeGroup._tooltipData = { showTooltip, hideTooltip, moveTooltip, tooltip };
+    // Create warning triangle
+    const warningPath = this.createSVGElement('path');
+    const size = 12;
+    const trianglePath = `M ${badgeX} ${badgeY - size} L ${badgeX + size} ${badgeY + size} L ${badgeX - size} ${badgeY + size} Z`;
+    warningPath.setAttribute('d', trianglePath);
+    warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336');
 
-    // Clean up tooltip when node is removed
-    const originalRemove = nodeGroup.remove;
-    nodeGroup.remove = function () {
-      if (tooltip) {
-        tooltip.remove();
-      }
-      originalRemove.call(this);
-    };
+    // Create exclamation mark
+    const exclamationDot = this.createSVGElement('circle');
+    exclamationDot.setAttribute('cx', badgeX);
+    exclamationDot.setAttribute('cy', badgeY + 5);
+    exclamationDot.setAttribute('r', '1.5');
+    exclamationDot.setAttribute('fill', 'white');
+
+    const exclamationLine = this.createSVGElement('rect');
+    exclamationLine.setAttribute('x', badgeX - 1.5);
+    exclamationLine.setAttribute('y', badgeY - 5);
+    exclamationLine.setAttribute('width', '3');
+    exclamationLine.setAttribute('height', '7');
+    exclamationLine.setAttribute('fill', 'white');
+
+    // Add tooltip
+    const title = this.createSVGElement('title');
+    const controlCount = risk.controls
+      ? risk.controls.length
+      : risk.controlIds
+        ? risk.controlIds.length
+        : 0;
+    const controlStatus = hasControl ? `Controls: ${controlCount} active` : 'No controls';
+    const levelText = risk.level ? `[${risk.level.toUpperCase()}]` : '';
+    title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
+
+    badgeGroup.appendChild(title);
+    badgeGroup.appendChild(warningPath);
+    badgeGroup.appendChild(exclamationLine);
+    badgeGroup.appendChild(exclamationDot);
+    badgeGroup.style.cursor = 'pointer';
+
+    return badgeGroup;
   }
 
   addRiskBadge(nodeGroup, x, y, node) {
+    console.log(`Adding risk badges for node ${node.id} at position (${x}, ${y}) with ${node.risks.length} risks`);
+
     // Create a container for all risk badges
-    const risksContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const risksContainer = this.createSVGElement('g');
     risksContainer.classList.add('risks-container');
 
-    // Create individual badge for each risk
+    // Create individual badge for each risk using shared method
     node.risks.forEach((risk, index) => {
-      // Check for controls in the new embedded structure
-      const hasControl = (risk.controls && risk.controls.length > 0) ||
-                         (risk.controlIds && risk.controlIds.length > 0); // backward compatibility
+      console.log(`Creating risk badge ${index + 1}/${node.risks.length} for risk: ${risk.text}`);
+      const badgeGroup = this.createRiskBadge(x, y, risk, index, node.risks.length);
 
-      // Create warning icon for this specific risk
-      const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      badgeGroup.classList.add('risk-badge');
-      badgeGroup.dataset.riskId = risk.id;
-
-      // Position badges in a row above the node
-      const badgeSpacing = 30;
-      const startX = x - ((node.risks.length - 1) * badgeSpacing) / 2;
-      const badgeX = startX + (index * badgeSpacing);
-      const badgeY = y - 35;
-
-      // Create larger filled warning triangle using SVG path
-      const warningPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      // Triangle path: move to top, line to bottom-right, line to bottom-left, close
-      const size = 12; // Half-width/height of triangle
-      const trianglePath = `M ${badgeX} ${badgeY - size} L ${badgeX + size} ${badgeY + size} L ${badgeX - size} ${badgeY + size} Z`;
-      warningPath.setAttribute('d', trianglePath);
-      warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
-
-      // Create exclamation mark inside triangle
-      const exclamationGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-      // Exclamation point (dot)
-      const exclamationDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      exclamationDot.setAttribute('cx', badgeX);
-      exclamationDot.setAttribute('cy', badgeY + 5);
-      exclamationDot.setAttribute('r', '1.5');
-      exclamationDot.setAttribute('fill', 'white');
-
-      // Exclamation line
-      const exclamationLine = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      exclamationLine.setAttribute('x', badgeX - 1.5);
-      exclamationLine.setAttribute('y', badgeY - 5);
-      exclamationLine.setAttribute('width', '3');
-      exclamationLine.setAttribute('height', '7');
-      exclamationLine.setAttribute('fill', 'white');
-
-      // Add tooltip with this specific risk's details
-      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-      // Count controls from either new or old structure
-      const controlCount = risk.controls ? risk.controls.length :
-                          (risk.controlIds ? risk.controlIds.length : 0);
-      const controlStatus = hasControl
-        ? `Controls: ${controlCount} active`
-        : 'No controls';
-      const levelText = risk.level ? `[${risk.level.toUpperCase()}]` : '';
-      title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
-      badgeGroup.appendChild(title);
-
-      badgeGroup.appendChild(warningPath);
-      exclamationGroup.appendChild(exclamationLine);
-      exclamationGroup.appendChild(exclamationDot);
-      badgeGroup.appendChild(exclamationGroup);
-
-      // Make each badge individually clickable
-      badgeGroup.style.cursor = 'pointer';
+      // Add click handler specific to nodes
       badgeGroup.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Dispatch custom event for this specific risk
         const event = new CustomEvent('riskBadgeClick', {
           detail: {
             node,
             risk,
             allRisks: node.risks,
-            allControls: node.controls || []
-          }
+            allControls: node.controls || [],
+          },
         });
         document.dispatchEvent(event);
       });
-
 
       risksContainer.appendChild(badgeGroup);
     });
@@ -168,7 +188,7 @@ export class SwimLaneRenderer {
     ];
 
     anchors.forEach((anchor) => {
-      const anchorCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      const anchorCircle = this.createSVGElement('circle');
       anchorCircle.setAttribute('cx', anchor.x);
       anchorCircle.setAttribute('cy', anchor.y);
       anchorCircle.setAttribute('r', '8');
@@ -207,18 +227,395 @@ export class SwimLaneRenderer {
 
   // Lane divider method removed - now handled in renderPhases()
 
-  render(processData) {
+  render(processData, options = {}) {
+    const forceFull = options.forceFull || false;
+    const previousData = this.processData;
     this.processData = processData;
+
     // Initialize phases array if not present
     if (!this.processData.phases) {
       this.processData.phases = [];
     }
-    this.clear();
-    this.renderSwimLanes();
-    this.renderPhases();
-    this.renderNodes();
-    this.renderConnections();
+
+    // Initialize connections array if not present
+    if (!this.processData.connections) {
+      this.processData.connections = [];
+    }
+
+    // Perform differential rendering if possible
+    if (!forceFull && previousData && this.canUseDifferentialRender(previousData, processData)) {
+      this.renderDifferential(previousData, processData);
+    } else {
+      // Full render for major structural changes
+      this.clear();
+      this.renderSwimLanes();
+      this.renderPhases();
+      this.renderNodes();
+      this.renderConnections();
+    }
     this.fitToScreen();
+  }
+
+  canUseDifferentialRender(oldData, newData) {
+    // Check if we can use differential rendering
+    if (!oldData || !newData) {
+      return false;
+    }
+    if (oldData.lanes.length !== newData.lanes.length) {
+      return false;
+    }
+    if ((oldData.phases?.length || 0) !== (newData.phases?.length || 0)) {
+      return false;
+    }
+    return true;
+  }
+
+  renderDifferential(oldData, newData) {
+    // Track existing elements
+    const existingNodes = new Map();
+    const existingConnections = new Map();
+
+    // Index existing nodes
+    this.nodesGroup.querySelectorAll('.process-node').forEach((node) => {
+      existingNodes.set(node.dataset.nodeId, node);
+    });
+
+    // Index existing connections
+    this.connectionsGroup.querySelectorAll('.process-connection').forEach((conn) => {
+      const key = `${conn.dataset.from}-${conn.dataset.to}`;
+      existingConnections.set(key, conn);
+    });
+
+    // Update lanes (positions and colors)
+    newData.lanes.forEach((lane) => {
+      const laneGroup = this.swimlanesGroup.querySelector(`[data-lane-id="${lane.id}"]`);
+      if (laneGroup) {
+        const rect = laneGroup.querySelector('rect');
+        if (rect && lane.color) {
+          rect.setAttribute('fill', lane.color);
+        }
+        const text = laneGroup.querySelector('text');
+        if (text && text.textContent !== lane.name) {
+          text.textContent = lane.name;
+        }
+      }
+    });
+
+    // Process nodes differentially
+    const processedNodes = new Set();
+    newData.lanes.forEach((lane) => {
+      lane.nodes?.forEach((node) => {
+        processedNodes.add(node.id);
+        const existingNode = existingNodes.get(node.id);
+
+        if (existingNode) {
+          // Update existing node position and attributes
+          this.updateNodeElement(existingNode, node, lane);
+          existingNodes.delete(node.id);
+        } else {
+          // Add new node
+          this.addSingleNode(node, lane);
+        }
+      });
+    });
+
+    // Remove deleted nodes
+    existingNodes.forEach((node) => node.remove());
+
+    // Process connections differentially
+    const processedConnections = new Set();
+    newData.connections?.forEach((conn) => {
+      const key = `${conn.from}-${conn.to}`;
+      processedConnections.add(key);
+      const existingConn = existingConnections.get(key);
+
+      if (existingConn) {
+        // Update existing connection if needed
+        this.updateConnectionElement(existingConn, conn);
+        existingConnections.delete(key);
+      } else {
+        // Add new connection
+        this.addSingleConnection(conn);
+      }
+    });
+
+    // Remove deleted connections
+    existingConnections.forEach((conn) => conn.remove());
+  }
+
+  updateNodeElement(nodeElement, nodeData, laneData) {
+    // Update position using transform for better performance
+    const currentTransform = nodeElement.getAttribute('transform') || '';
+    const newTransform = `translate(${nodeData.position.x}, ${nodeData.position.y})`;
+
+    if (currentTransform !== newTransform) {
+      nodeElement.setAttribute('transform', newTransform);
+    }
+
+    // Preserve dragging state during updates
+    const isDragging = nodeElement.classList.contains('node-dragging');
+
+    // Update both icon and text elements to match renderNodes structure
+    const textElements = nodeElement.querySelectorAll('text');
+    if (textElements.length >= 2) {
+      // First text is icon, second is node text
+      const iconElement = textElements[0];
+      const textElement = textElements[1];
+
+      if (iconElement && iconElement.textContent !== (nodeData.icon || '')) {
+        iconElement.textContent = nodeData.icon || '';
+      }
+
+      if (textElement && textElement.textContent !== nodeData.text) {
+        textElement.textContent = nodeData.text;
+      }
+    }
+
+    // Restore dragging state if it was lost
+    if (isDragging && !nodeElement.classList.contains('node-dragging')) {
+      nodeElement.classList.add('node-dragging');
+    }
+
+    // Update risks if changed
+    let risksContainer = nodeElement.querySelector('.risks-container');
+
+    // Remove existing risks container if risks have changed
+    if (risksContainer && nodeData.risks?.length > 0) {
+      risksContainer.remove();
+      risksContainer = null;
+    }
+
+    // Add new risks container if there are risks and no container exists
+    if (nodeData.risks?.length > 0 && !risksContainer) {
+      // Use relative coordinates (0,0) since the node group is already transformed
+      this.addRiskBadge(nodeElement, 0, 0, nodeData);
+    } else if (!nodeData.risks?.length && risksContainer) {
+      risksContainer.remove();
+    }
+  }
+
+  updateConnectionElement(connElement, connData) {
+    // Update path if nodes have moved
+    const fromNode = this.findNode(connData.from);
+    const toNode = this.findNode(connData.to);
+
+    if (fromNode && toNode) {
+      const pathData = this.getCachedPath(fromNode, toNode);
+      const pathElement = connElement.querySelector('path');
+      if (pathElement) {
+        pathElement.setAttribute('d', pathData);
+      }
+
+      // Update label position if exists
+      if (connData.label) {
+        const labelElement = connElement.querySelector('text.connection-label');
+        if (labelElement) {
+          const midPoint = this.getPathMidpoint(fromNode, toNode);
+          labelElement.setAttribute('x', midPoint.x);
+          labelElement.setAttribute('y', midPoint.y - 10);
+        }
+      }
+
+      // Update risks if changed
+      let risksContainer = connElement.querySelector('.connection-risks-container');
+
+      // Remove existing risks container if risks have changed
+      if (risksContainer) {
+        risksContainer.remove();
+        risksContainer = null;
+      }
+
+      // Add new risks container if there are risks
+      if (connData.risks?.length > 0) {
+        console.log('Updating connection with risks:', {
+          from: connData.from,
+          to: connData.to,
+          risksCount: connData.risks.length
+        });
+        this.addConnectionRisks(connElement, connData, fromNode, toNode);
+      }
+    }
+  }
+
+  addSingleNode(nodeData, laneData) {
+    // Add a single node matching the structure from renderNodes
+    const nodeGroup = this.createSVGElement('g');
+    nodeGroup.classList.add('process-node');
+    nodeGroup.dataset.nodeId = nodeData.id;
+    nodeGroup.dataset.laneId = laneData.id;
+    nodeGroup.style.cursor = 'move';
+    nodeGroup.setAttribute(
+      'transform',
+      `translate(${nodeData.position.x}, ${nodeData.position.y})`,
+    );
+
+    // Create node shape matching renderNodes
+    const nodeShape = this.createNodeShape(nodeData.type, 0, 0, laneData);
+    nodeShape.style.fill = nodeData.color || this.getNodeColor(nodeData.type);
+    nodeShape.style.stroke = 'white';
+    nodeShape.style.strokeWidth = '2';
+    nodeGroup.appendChild(nodeShape);
+
+    // Add icon text matching renderNodes
+    const nodeIcon = this.createSVGElement('text');
+    nodeIcon.setAttribute('x', 0);
+    nodeIcon.setAttribute('y', -10);
+    nodeIcon.setAttribute('text-anchor', 'middle');
+    nodeIcon.classList.add('node-text');
+    nodeIcon.style.fontSize = '20px';
+    nodeIcon.textContent = nodeData.icon || '';
+    nodeGroup.appendChild(nodeIcon);
+
+    // Add node text matching renderNodes
+    const nodeText = this.createSVGElement('text');
+    nodeText.setAttribute('x', 0);
+    nodeText.setAttribute('y', 10);
+    nodeText.setAttribute('text-anchor', 'middle');
+    nodeText.classList.add('node-text');
+    nodeText.style.fontSize = '12px';
+    nodeText.textContent = nodeData.text;
+    nodeGroup.appendChild(nodeText);
+
+    // Add risks if present
+    if (nodeData.risks?.length > 0) {
+      this.addRiskBadge(nodeGroup, 0, 0, nodeData);
+    }
+
+    // Add tooltip if present
+    if (nodeData.description) {
+      this.addNodeTooltip(nodeGroup, nodeData);
+    }
+
+    // Add connection anchors
+    this.addConnectionAnchors(nodeGroup, 0, 0, nodeData.id);
+
+    this.nodesGroup.appendChild(nodeGroup);
+  }
+
+  addSingleConnection(connData) {
+    // Add a single connection without re-rendering everything
+    const fromNode = this.findNode(connData.from);
+    const toNode = this.findNode(connData.to);
+
+    if (!fromNode || !toNode) {
+      return;
+    }
+
+    const connectionGroup = this.createSVGElement('g');
+    connectionGroup.classList.add('process-connection');
+    connectionGroup.dataset.from = connData.from;
+    connectionGroup.dataset.to = connData.to;
+
+    const pathData = this.getCachedPath(fromNode, toNode);
+    const path = this.createSVGElement('path');
+    path.setAttribute('d', pathData);
+    path.setAttribute('stroke', '#5a6c7d');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('fill', 'none');
+    connectionGroup.appendChild(path);
+
+    // Add label if present
+    if (connData.label) {
+      const midPoint = this.getPathMidpoint(fromNode, toNode);
+      const label = this.createSVGElement('text');
+      label.setAttribute('x', midPoint.x);
+      label.setAttribute('y', midPoint.y - 10);
+      label.setAttribute('text-anchor', 'middle');
+      label.textContent = connData.label;
+      connectionGroup.appendChild(label);
+    }
+
+    // Add risks if present
+    if (connData.risks?.length > 0) {
+      this.addConnectionRisks(connectionGroup, connData, fromNode, toNode);
+    }
+
+    this.connectionsGroup.appendChild(connectionGroup);
+  }
+
+  createNodeShape(type, x, y, laneData) {
+    let nodeShape;
+
+    switch (type) {
+      case 'start':
+      case 'end':
+        nodeShape = this.createSVGElement('circle');
+        nodeShape.setAttribute('cx', x);
+        nodeShape.setAttribute('cy', y);
+        nodeShape.setAttribute('r', '35');
+        break;
+      case 'decision':
+        nodeShape = this.createSVGElement('polygon');
+        const points = `${x},${y - 35} ${x + 35},${y} ${x},${y + 35} ${x - 35},${y}`;
+        nodeShape.setAttribute('points', points);
+        break;
+      default:
+        nodeShape = this.createSVGElement('rect');
+        nodeShape.setAttribute('x', x - 50);
+        nodeShape.setAttribute('y', y - 25);
+        nodeShape.setAttribute('width', '100');
+        nodeShape.setAttribute('height', '50');
+        nodeShape.setAttribute('rx', '25');
+        nodeShape.setAttribute('ry', '25');
+        break;
+    }
+
+    nodeShape.classList.add(`node-${type}`);
+    nodeShape.style.fill = laneData?.color || this.getNodeColor(type);
+    nodeShape.style.stroke = '#ffffff';
+    nodeShape.style.strokeWidth = '2';
+
+    return nodeShape;
+  }
+
+  addConnectionRisks(connectionGroup, connData, fromNode, toNode) {
+    console.log('Adding connection risks:', {
+      from: connData.from,
+      to: connData.to,
+      risksCount: connData.risks.length,
+      risks: connData.risks
+    });
+
+    const midPoint = this.getPathMidpoint(fromNode, toNode);
+    const risksContainer = this.createSVGElement('g');
+    risksContainer.classList.add('connection-risks-container');
+
+    connData.risks.forEach((risk, index) => {
+      const badgeGroup = this.createRiskBadge(
+        midPoint.x,
+        midPoint.y,
+        risk,
+        index,
+        connData.risks.length,
+      );
+      badgeGroup.classList.add('connection-risk-badge');
+
+      badgeGroup.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fromName = fromNode ? fromNode.text : connData.from;
+        const toName = toNode ? toNode.text : connData.to;
+
+        const connectionAsNode = {
+          id: `connection_${connData.from}_${connData.to}`,
+          text: `Connection: ${fromName} → ${toName}`,
+          type: 'connection',
+          risks: connData.risks || [],
+          isConnection: true,
+          fromId: connData.from,
+          toId: connData.to,
+          label: connData.label,
+        };
+
+        const showEvent = new CustomEvent('connectionRiskClick', {
+          detail: { connection: connectionAsNode },
+        });
+        document.dispatchEvent(showEvent);
+      });
+
+      risksContainer.appendChild(badgeGroup);
+    });
+
+    connectionGroup.appendChild(risksContainer);
   }
 
   clear() {
@@ -247,11 +644,11 @@ export class SwimLaneRenderer {
     const totalWidth = this.calculateTotalWidth();
 
     this.processData.lanes.forEach((lane, index) => {
-      const laneGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const laneGroup = this.createSVGElement('g');
       laneGroup.setAttribute('data-lane-id', lane.id);
       laneGroup.classList.add('lane-group');
 
-      const laneRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      const laneRect = this.createSVGElement('rect');
       laneRect.setAttribute('x', '20');
       laneRect.setAttribute('y', currentY);
       laneRect.setAttribute('width', totalWidth - 40); // Leave 20px margin on each side
@@ -260,7 +657,7 @@ export class SwimLaneRenderer {
       laneRect.setAttribute('ry', '2');
       laneRect.classList.add('swimlane');
 
-      const laneLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      const laneLabel = this.createSVGElement('text');
       laneLabel.setAttribute('x', '40');
       laneLabel.setAttribute('y', currentY + 30);
       laneLabel.classList.add('lane-label');
@@ -283,13 +680,12 @@ export class SwimLaneRenderer {
   renderNodes() {
     this.processData.lanes.forEach((lane) => {
       lane.nodes.forEach((node) => {
-        const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const nodeGroup = this.createSVGElement('g');
         nodeGroup.setAttribute('data-node-id', node.id);
         nodeGroup.setAttribute('data-lane-id', lane.id);
         nodeGroup.classList.add('process-node');
         nodeGroup.style.cursor = 'move';
 
-        let nodeShape;
         const x = node.position.x;
         // Always use lane center for y position - nodes should align with their lanes
         const y = lane.y + 70;
@@ -297,48 +693,27 @@ export class SwimLaneRenderer {
         // Store the calculated position
         node.position.y = y;
 
-        console.log(`Rendering node ${node.id}: type=${node.type}, color=${node.color}`);
+        // Use transform for positioning the entire group
+        nodeGroup.setAttribute('transform', `translate(${x}, ${y})`);
 
-        switch (node.type) {
-          case 'start':
-          case 'end':
-            nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            nodeShape.setAttribute('cx', x);
-            nodeShape.setAttribute('cy', y);
-            nodeShape.setAttribute('r', '35');
-            break;
-          case 'decision':
-            nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            const points = `${x},${y - 35} ${x + 35},${y} ${x},${y + 35} ${x - 35},${y}`;
-            nodeShape.setAttribute('points', points);
-            break;
-          default:
-            console.log('Creating PROCESS node (default) with rounded corners');
-            nodeShape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            nodeShape.setAttribute('x', x - 50);
-            nodeShape.setAttribute('y', y - 25);
-            nodeShape.setAttribute('width', '100');
-            nodeShape.setAttribute('height', '50');
-            nodeShape.setAttribute('rx', '25');
-            nodeShape.setAttribute('ry', '25');
-            break;
-        }
-
-        nodeShape.classList.add(`node-${node.type}`);
+        // Create node shape at origin (0, 0) since group is transformed
+        const nodeShape = this.createNodeShape(node.type, 0, 0, lane);
         nodeShape.style.fill = node.color || this.getNodeColor(node.type);
         nodeShape.style.stroke = 'white';
         nodeShape.style.strokeWidth = '2';
 
-        const nodeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        nodeIcon.setAttribute('x', x);
-        nodeIcon.setAttribute('y', y - 10);
+        const nodeIcon = this.createSVGElement('text');
+        nodeIcon.setAttribute('x', 0);
+        nodeIcon.setAttribute('y', -10);
+        nodeIcon.setAttribute('text-anchor', 'middle');
         nodeIcon.classList.add('node-text');
         nodeIcon.style.fontSize = '20px';
-        nodeIcon.textContent = node.icon;
+        nodeIcon.textContent = node.icon || '';
 
-        const nodeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        nodeText.setAttribute('x', x);
-        nodeText.setAttribute('y', y + 10);
+        const nodeText = this.createSVGElement('text');
+        nodeText.setAttribute('x', 0);
+        nodeText.setAttribute('y', 10);
+        nodeText.setAttribute('text-anchor', 'middle');
         nodeText.classList.add('node-text');
         nodeText.style.fontSize = '12px';
         nodeText.textContent = node.text;
@@ -347,13 +722,13 @@ export class SwimLaneRenderer {
         nodeGroup.appendChild(nodeIcon);
         nodeGroup.appendChild(nodeText);
 
-        // Add risk badges if node has risks
+        // Add risk badges if node has risks (use 0,0 since group is transformed)
         if (node.risks && node.risks.length > 0) {
-          this.addRiskBadge(nodeGroup, x, y, node);
+          this.addRiskBadge(nodeGroup, 0, 0, node);
         }
 
-        // Add connection anchors
-        this.addConnectionAnchors(nodeGroup, x, y, node.id);
+        // Add connection anchors (use 0,0 since group is transformed)
+        this.addConnectionAnchors(nodeGroup, 0, 0, node.id);
 
         // Add tooltip functionality
         this.addNodeTooltip(nodeGroup, node);
@@ -364,92 +739,74 @@ export class SwimLaneRenderer {
   }
 
   renderConnections() {
+    if (!this.processData.connections) {
+      this.processData.connections = [];
+    }
+
     this.processData.connections.forEach((conn) => {
       const fromNode = this.findNode(conn.from);
       const toNode = this.findNode(conn.to);
 
       if (fromNode && toNode) {
-        const path = this.calculatePath(fromNode, toNode);
+        // Create a connection group container
+        const connectionGroup = this.createSVGElement('g');
+        connectionGroup.classList.add('process-connection');
+        connectionGroup.dataset.from = conn.from;
+        connectionGroup.dataset.to = conn.to;
 
-        const connectionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const path = this.getCachedPath(fromNode, toNode);
+
+        const connectionPath = this.createSVGElement('path');
         connectionPath.setAttribute('d', path);
         connectionPath.classList.add('connection-line');
-
         connectionPath.setAttribute('data-from', conn.from);
         connectionPath.setAttribute('data-to', conn.to);
 
-        // Add risk indicator badges if connection has risks (similar to nodes)
+        // Add the path to the group
+        connectionGroup.appendChild(connectionPath);
+
+        // Add label if present
+        if (conn.label) {
+          const midPoint = this.getPathMidpoint(fromNode, toNode);
+          const label = this.createSVGElement('text');
+          label.setAttribute('x', midPoint.x);
+          label.setAttribute('y', midPoint.y - 5);
+          label.classList.add('connection-label');
+          label.textContent = conn.label;
+          connectionGroup.appendChild(label);
+        }
+
+        // Add risk indicator badges if connection has risks
         if (conn.risks && conn.risks.length > 0) {
+          console.log('Connection has risks in renderConnections:', {
+            from: conn.from,
+            to: conn.to,
+            risksCount: conn.risks.length
+          });
           const midPoint = this.getPathMidpoint(fromNode, toNode);
 
           // Create a container for all risk badges
-          const risksContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          const risksContainer = this.createSVGElement('g');
           risksContainer.classList.add('connection-risks-container');
 
-          // Create individual badge for each risk
+          // Create individual badge for each risk using shared method
           conn.risks.forEach((risk, index) => {
-            // Check if this risk has controls
-            const hasControl = risk.controls && risk.controls.length > 0;
-
-            // Create badge group for this specific risk
-            const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const badgeGroup = this.createRiskBadge(
+              midPoint.x,
+              midPoint.y,
+              risk,
+              index,
+              conn.risks.length,
+            );
             badgeGroup.classList.add('connection-risk-badge');
-            badgeGroup.dataset.riskId = risk.id;
 
-            // Position badges in a row above the connection midpoint
-            const badgeSpacing = 30;
-            const startX = midPoint.x - ((conn.risks.length - 1) * badgeSpacing) / 2;
-            const badgeX = startX + (index * badgeSpacing);
-            const badgeY = midPoint.y - 25;
-
-            // Create larger filled warning triangle using SVG path
-            const warningPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            // Triangle path: move to top, line to bottom-right, line to bottom-left, close
-            const size = 12; // Half-width/height of triangle
-            const trianglePath = `M ${badgeX} ${badgeY - size} L ${badgeX + size} ${badgeY + size} L ${badgeX - size} ${badgeY + size} Z`;
-            warningPath.setAttribute('d', trianglePath);
-            warningPath.setAttribute('fill', hasControl ? '#ff9800' : '#f44336'); // Yellow if has controls, red if not
-
-            // Create exclamation mark inside triangle
-            const exclamationGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-            // Exclamation point (dot)
-            const exclamationDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            exclamationDot.setAttribute('cx', badgeX);
-            exclamationDot.setAttribute('cy', badgeY + 5);
-            exclamationDot.setAttribute('r', '1.5');
-            exclamationDot.setAttribute('fill', 'white');
-
-            // Exclamation line
-            const exclamationLine = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            exclamationLine.setAttribute('x', badgeX - 1.5);
-            exclamationLine.setAttribute('y', badgeY - 5);
-            exclamationLine.setAttribute('width', '3');
-            exclamationLine.setAttribute('height', '7');
-            exclamationLine.setAttribute('fill', 'white');
-
-            // Add tooltip with this specific risk's details
-            const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-            const controlCount = risk.controls ? risk.controls.length : 0;
-            const controlStatus = hasControl
-              ? `Controls: ${controlCount} active`
-              : 'No controls';
-            const levelText = risk.level ? `[${risk.level.toUpperCase()}]` : '';
-            title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
-            badgeGroup.appendChild(title);
-
-            // Add hover effect
-            badgeGroup.style.cursor = 'pointer';
-
-            // Add click handler to open risk modal for this connection
+            // Add click handler specific to connections
             badgeGroup.addEventListener('click', (e) => {
               e.stopPropagation();
 
-              // Get the actual node names (fromNode and toNode are already available in this scope)
               const fromName = fromNode ? fromNode.text : conn.from;
               const toName = toNode ? toNode.text : conn.to;
 
-              // Create connection object for the risk modal
               const connectionAsNode = {
                 id: `connection_${conn.from}_${conn.to}`,
                 text: `Connection: ${fromName} → ${toName}`,
@@ -458,41 +815,45 @@ export class SwimLaneRenderer {
                 isConnection: true,
                 fromId: conn.from,
                 toId: conn.to,
-                label: conn.label
+                label: conn.label,
               };
 
-              // Dispatch event to show risk modal (handled by app.js)
               const showEvent = new CustomEvent('connectionRiskClick', {
-                detail: { connection: connectionAsNode }
+                detail: { connection: connectionAsNode },
               });
               document.dispatchEvent(showEvent);
             });
 
-            badgeGroup.appendChild(warningPath);
-            exclamationGroup.appendChild(exclamationLine);
-            exclamationGroup.appendChild(exclamationDot);
-            badgeGroup.appendChild(exclamationGroup);
             risksContainer.appendChild(badgeGroup);
           });
 
-          this.connectionsGroup.appendChild(risksContainer);
+          connectionGroup.appendChild(risksContainer);
         }
 
-        if (conn.label) {
-          const midPoint = this.getPathMidpoint(fromNode, toNode);
-          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          label.setAttribute('x', midPoint.x);
-          label.setAttribute('y', midPoint.y - 5);
-          label.classList.add('connection-label');
-          label.setAttribute('data-from', conn.from);
-          label.setAttribute('data-to', conn.to);
-          label.textContent = conn.label;
-          this.connectionsGroup.appendChild(label);
-        }
-
-        this.connectionsGroup.appendChild(connectionPath);
+        // Add the complete connection group to the connections container
+        this.connectionsGroup.appendChild(connectionGroup);
       }
     });
+  }
+
+  getCachedPath(fromNode, toNode) {
+    // Use path cache for performance
+    const cacheKey = `${fromNode.id}-${toNode.id}-${fromNode.position.x},${fromNode.position.y}-${toNode.position.x},${toNode.position.y}`;
+
+    if (this.pathCache.has(cacheKey)) {
+      return this.pathCache.get(cacheKey);
+    }
+
+    const path = this.calculatePath(fromNode, toNode);
+
+    // Maintain cache size limit
+    if (this.pathCache.size >= this.maxCacheSize) {
+      const firstKey = this.pathCache.keys().next().value;
+      this.pathCache.delete(firstKey);
+    }
+
+    this.pathCache.set(cacheKey, path);
+    return path;
   }
 
   calculatePath(fromNode, toNode) {
@@ -707,19 +1068,32 @@ export class SwimLaneRenderer {
       } else {
         node.color = this.getNodeColor(node.type);
       }
-      this.render(this.processData);
+      // Force full render if risks are being updated to ensure badges are displayed
+      const forceFullRender = updates.risks !== undefined;
+      this.render(this.processData, { forceFull: forceFullRender });
     }
   }
 
   deleteNode(nodeId) {
+    if (!this.processData) return false;
+
+    // Find and remove the node from its lane
     for (const lane of this.processData.lanes) {
       const index = lane.nodes.findIndex((n) => n.id === nodeId);
       if (index !== -1) {
         lane.nodes.splice(index, 1);
-        this.processData.connections = this.processData.connections.filter(
-          (conn) => conn.from !== nodeId && conn.to !== nodeId,
-        );
-        this.render(this.processData);
+
+        // Remove all connections to or from this node
+        if (this.processData.connections) {
+          this.processData.connections = this.processData.connections.filter(
+            (conn) => conn.from !== nodeId && conn.to !== nodeId
+          );
+        } else {
+          this.processData.connections = [];
+        }
+
+        // Force a full render to ensure connections are updated
+        this.render(this.processData, { forceFull: true });
         return true;
       }
     }
@@ -746,6 +1120,7 @@ export class SwimLaneRenderer {
       from: fromId,
       to: toId,
       label,
+      risks: [], // Initialize empty risks array for connections
     };
     this.processData.connections.push(connection);
     this.render(this.processData);
@@ -801,7 +1176,7 @@ export class SwimLaneRenderer {
       const dividerY = prevLane.y + (prevLane.height || 140) + 5; // Position between lanes
 
       // Create a group for this divider
-      const dividerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const dividerGroup = this.createSVGElement('g');
       dividerGroup.classList.add('lane-divider-group');
       dividerGroup.setAttribute('data-divider-index', index);
 
@@ -821,7 +1196,7 @@ export class SwimLaneRenderer {
 
         if (startX < segmentEndX) {
           // Create segment for this phase
-          const segment = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          const segment = this.createSVGElement('line');
           segment.setAttribute('x1', startX);
           segment.setAttribute('y1', dividerY);
           segment.setAttribute('x2', segmentEndX);
@@ -843,7 +1218,7 @@ export class SwimLaneRenderer {
           for (let i = 0; i <= numBuoys; i++) {
             const buoyX = startX + i * 40;
             if (buoyX <= segmentEndX) {
-              const buoy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              const buoy = this.createSVGElement('circle');
               buoy.setAttribute('cx', buoyX);
               buoy.setAttribute('cy', dividerY);
               buoy.setAttribute('r', '6');
@@ -866,7 +1241,7 @@ export class SwimLaneRenderer {
     // Add phase labels at the top
     if (sortedPhases.length > 0) {
       sortedPhases.forEach((phase, index) => {
-        const phaseLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const phaseLabel = this.createSVGElement('text');
         const labelX =
           index === 0
             ? (20 + phase.position) / 2

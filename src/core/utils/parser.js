@@ -42,7 +42,7 @@ export class ProcessParser {
     const process = {
       title: sanitizedData.title,
       lanes: sanitizedData.lanes,
-      connections: sanitizedData.connections,
+      connections: sanitizedData.connections || [],
       phases: sanitizedData.phases || [],
       metadata: jsonData.metadata || {},
     };
@@ -58,7 +58,14 @@ export class ProcessParser {
 
       // Enhance nodes with icons and colors from theme
       lane.nodes.forEach((node) => {
-        console.log(`Processing node in lane ${lane.name}:`, node.id, 'Type:', node.type, 'Text:', node.text);
+        console.log(
+          `Processing node in lane ${lane.name}:`,
+          node.id,
+          'Type:',
+          node.type,
+          'Text:',
+          node.text,
+        );
         node.icon = Theme.nodes.getIcon(node.type);
         // Always use theme color based on node type, ignore imported color
         node.color = Theme.nodes.getColor(node.type);
@@ -87,19 +94,20 @@ export class ProcessParser {
 
     // Include risks with embedded controls if present
     if (node.risks && Array.isArray(node.risks)) {
-      parsedNode.risks = node.risks.map(risk => ({
+      parsedNode.risks = node.risks.map((risk) => ({
         id: risk.id || `risk_${Date.now()}_${Math.random()}`,
         text: risk.text || '',
         level: risk.level || 'medium',
         description: risk.description || '',
-        controls: risk.controls && Array.isArray(risk.controls)
-          ? risk.controls.map(control => ({
-              id: control.id || `control_${Date.now()}_${Math.random()}`,
-              text: control.text || '',
-              type: control.type || 'preventive',
-              description: control.description || ''
-            }))
-          : []
+        controls:
+          risk.controls && Array.isArray(risk.controls)
+            ? risk.controls.map((control) => ({
+                id: control.id || `control_${Date.now()}_${Math.random()}`,
+                text: control.text || '',
+                type: control.type || 'preventive',
+                description: control.description || '',
+              }))
+            : [],
       }));
     }
 

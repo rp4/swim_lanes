@@ -260,12 +260,14 @@ export class ValidationService {
     if (!Array.isArray(risks)) {
       return [];
     }
-    return risks.map(risk => ({
+    return risks.map((risk) => ({
       id: this.sanitizeId(risk.id || `risk_${Date.now()}_${Math.random()}`),
       text: this.sanitizeText(risk.text || 'Unnamed risk'),
       level: ['low', 'medium', 'high', 'critical'].includes(risk.level) ? risk.level : 'medium',
       description: this.sanitizeText(risk.description || ''),
-      controlIds: Array.isArray(risk.controlIds) ? risk.controlIds.map(id => this.sanitizeId(id)) : []
+      controlIds: Array.isArray(risk.controlIds)
+        ? risk.controlIds.map((id) => this.sanitizeId(id))
+        : [],
     }));
   }
 
@@ -278,11 +280,13 @@ export class ValidationService {
     if (!Array.isArray(controls)) {
       return [];
     }
-    return controls.map(control => ({
+    return controls.map((control) => ({
       id: this.sanitizeId(control.id || `control_${Date.now()}_${Math.random()}`),
       text: this.sanitizeText(control.text || 'Unnamed control'),
-      type: ['preventive', 'detective', 'corrective'].includes(control.type) ? control.type : 'preventive',
-      description: this.sanitizeText(control.description || '')
+      type: ['preventive', 'detective', 'corrective'].includes(control.type)
+        ? control.type
+        : 'preventive',
+      description: this.sanitizeText(control.description || ''),
     }));
   }
 

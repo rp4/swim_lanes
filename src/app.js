@@ -8,6 +8,7 @@ import { UrlParamsHandler } from './core/services/UrlParamsHandler.js';
 import { ErrorHandler } from './core/services/ErrorHandler.js';
 import { LandingPage } from './components/landing/LandingPage.js';
 import { RiskDetailsModal } from './components/modals/RiskDetailsModal.js';
+import storageManager from './core/services/StorageManager.js';
 import './styles/base/main.css';
 
 class SwimLaneApp {
@@ -66,13 +67,18 @@ class SwimLaneApp {
         const connection = this.renderer.findConnection(e.detail.fromId, e.detail.toId);
         if (connection) {
           connection.risks = e.detail.risks;
-          console.log('Connection risks updated:', {
+          console.log('Connection risks updated in app.js:', {
             from: e.detail.fromId,
             to: e.detail.toId,
             risksCount: e.detail.risks.length,
-            risks: e.detail.risks
+            risks: e.detail.risks,
+            connection: connection,
           });
-          this.renderer.render(this.renderer.processData);
+          console.log('Calling renderer.render with processData:', this.renderer.processData);
+          // Force full render when connection risks change to ensure badges are displayed
+          this.renderer.render(this.renderer.processData, { forceFull: true });
+        } else {
+          console.error('Connection not found:', e.detail.fromId, '->', e.detail.toId);
         }
       }
       this.editor.saveState();
@@ -229,14 +235,6 @@ class SwimLaneApp {
       document.body.appendChild(this.landingPage.render());
     }
     this.landingPage.show();
-  }
-
-  startNewDiagram() {
-    this.initializeDiagram();
-    // Load empty diagram or default template
-    if (this.renderer) {
-      this.renderer.clear();
-    }
   }
 
   loadDiagram(jsonData) {
