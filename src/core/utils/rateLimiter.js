@@ -2,6 +2,8 @@
  * Rate limiting utilities for preventing excessive function calls
  */
 
+import { Logger } from './Logger.js';
+
 /**
  * Debounce - delays function execution until after wait milliseconds have elapsed
  * since the last time it was invoked
@@ -106,7 +108,7 @@ export function createRateLimiter(maxTokens = 10, refillRate = 1) {
     }
 
     // Action rejected due to rate limit
-    console.warn('Rate limit exceeded');
+    Logger.warn('Rate limit exceeded');
     return null;
   };
 }

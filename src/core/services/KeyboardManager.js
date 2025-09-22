@@ -1,3 +1,5 @@
+import { Logger } from '../utils/Logger.js';
+
 export class KeyboardManager {
   constructor(app) {
     this.app = app;
@@ -30,7 +32,7 @@ export class KeyboardManager {
       case 'e':
         e.preventDefault();
         // downloadImage method not implemented
-        console.warn('Export image shortcut not implemented');
+        Logger.warn('Export image shortcut not implemented');
         break;
       case 'l':
         e.preventDefault();

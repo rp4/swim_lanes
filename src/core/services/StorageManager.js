@@ -1,6 +1,8 @@
 /**
  * StorageManager - Handles localStorage operations with quota management
  */
+import { Logger } from '../utils/Logger.js';
+
 export class StorageManager {
   constructor() {
     this.prefix = 'swimlanes_';
@@ -27,7 +29,7 @@ export class StorageManager {
 
         // Check if we're approaching quota
         if (usage + size > quota * this.quotaThreshold) {
-          console.warn('Approaching storage quota limit');
+          Logger.warn('Approaching storage quota limit');
           await this.cleanupOldData();
         }
       }
@@ -49,7 +51,7 @@ export class StorageManager {
         return true;
       } catch (e) {
         if (e.name === 'QuotaExceededError') {
-          console.warn('Storage quota exceeded, attempting cleanup...');
+          Logger.warn('Storage quota exceeded, attempting cleanup...');
           await this.handleQuotaExceeded();
 
           // Retry once after cleanup
@@ -57,14 +59,14 @@ export class StorageManager {
             localStorage.setItem(prefixedKey, serialized);
             return true;
           } catch (retryError) {
-            console.error('Failed to store after cleanup:', retryError);
+            Logger.error('Failed to store after cleanup:', retryError);
             return false;
           }
         }
         throw e;
       }
     } catch (error) {
-      console.error('Storage error:', error);
+      Logger.error('Storage error:', error);
       return false;
     }
   }
@@ -85,7 +87,7 @@ export class StorageManager {
 
       return JSON.parse(item);
     } catch (error) {
-      console.error('Error retrieving from storage:', error);
+      Logger.error('Error retrieving from storage:', error);
       return null;
     }
   }
@@ -101,7 +103,7 @@ export class StorageManager {
       localStorage.removeItem(prefixedKey);
       localStorage.removeItem(`${prefixedKey}_meta`);
     } catch (error) {
-      console.error('Error removing from storage:', error);
+      Logger.error('Error removing from storage:', error);
     }
   }
 
@@ -140,7 +142,7 @@ export class StorageManager {
       localStorage.removeItem(items[i].metaKey);
     }
 
-    console.log(`Cleaned up ${removeCount} old items from storage`);
+    Logger.info(`Cleaned up ${removeCount} old items from storage`);
   }
 
   /**
@@ -208,7 +210,7 @@ export class StorageManager {
     }
 
     keys.forEach((key) => localStorage.removeItem(key));
-    console.log(`Cleared ${keys.length} non-critical items from storage`);
+    Logger.info(`Cleared ${keys.length} non-critical items from storage`);
   }
 
   /**
@@ -264,7 +266,7 @@ export class StorageManager {
     }
 
     keys.forEach((key) => localStorage.removeItem(key));
-    console.log('Cleared all app storage');
+    Logger.info('Cleared all app storage');
   }
 }
 

@@ -1,3 +1,5 @@
+import { Logger } from '../utils/Logger.js';
+
 export class UrlParamsHandler {
   constructor(app) {
     this.app = app;
@@ -26,11 +28,11 @@ export class UrlParamsHandler {
       }
 
       const jsonData = JSON.parse(jsonString);
-      // parseProcess will validate and sanitize the data
-      const processData = this.app.parser.parseProcess(jsonData);
+      // Use parse() instead of parseProcess() to ensure proper validation
+      const processData = this.app.parser.parse(jsonData);
       this.app.controls.displayDiagram(processData);
     } catch (error) {
-      console.error('Failed to load shared diagram:', error);
+      Logger.error('Failed to load shared diagram:', error);
       this.showErrorMessage('Failed to load shared diagram. The link may be corrupted.');
     }
   }
@@ -44,7 +46,7 @@ export class UrlParamsHandler {
 
   showErrorMessage(message) {
     // This could be enhanced with a better UI notification system
-    console.error(message);
+    Logger.error(message);
     alert(message);
   }
 }

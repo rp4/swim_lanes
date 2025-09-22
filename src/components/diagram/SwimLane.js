@@ -1,4 +1,5 @@
 import { Theme } from '../../core/config/theme.js';
+import { Logger } from '../../core/utils/Logger.js';
 
 export class SwimLaneRenderer {
   constructor(svgElement) {
@@ -146,7 +147,7 @@ export class SwimLaneRenderer {
   }
 
   addRiskBadge(nodeGroup, x, y, node) {
-    console.log(`Adding risk badges for node ${node.id} at position (${x}, ${y}) with ${node.risks.length} risks`);
+    Logger.debug(`Adding risk badges for node ${node.id} at position (${x}, ${y}) with ${node.risks.length} risks`);
 
     // Create a container for all risk badges
     const risksContainer = this.createSVGElement('g');
@@ -154,7 +155,7 @@ export class SwimLaneRenderer {
 
     // Create individual badge for each risk using shared method
     node.risks.forEach((risk, index) => {
-      console.log(`Creating risk badge ${index + 1}/${node.risks.length} for risk: ${risk.text}`);
+      Logger.debug(`Creating risk badge ${index + 1}/${node.risks.length} for risk: ${risk.text}`);
       const badgeGroup = this.createRiskBadge(x, y, risk, index, node.risks.length);
 
       // Add click handler specific to nodes
@@ -436,7 +437,7 @@ export class SwimLaneRenderer {
 
       // Add new risks container if there are risks
       if (connData.risks?.length > 0) {
-        console.log('Updating connection with risks:', {
+        Logger.debug('Updating connection with risks:', {
           from: connData.from,
           to: connData.to,
           risksCount: connData.risks.length
@@ -578,7 +579,7 @@ export class SwimLaneRenderer {
   }
 
   addConnectionRisks(connectionGroup, connData, fromNode, toNode) {
-    console.log('Adding connection risks:', {
+    Logger.debug('Adding connection risks:', {
       from: connData.from,
       to: connData.to,
       risksCount: connData.risks.length,
@@ -665,6 +666,8 @@ export class SwimLaneRenderer {
       laneRect.setAttribute('rx', '2');
       laneRect.setAttribute('ry', '2');
       laneRect.classList.add('swimlane');
+      // Ensure white background is set explicitly
+      laneRect.setAttribute('fill', 'white');
 
       const laneLabel = this.createSVGElement('text');
       laneLabel.setAttribute('x', '40');
@@ -787,7 +790,7 @@ export class SwimLaneRenderer {
 
         // Add risk indicator badges if connection has risks
         if (conn.risks && conn.risks.length > 0) {
-          console.log('Connection has risks in renderConnections:', {
+          Logger.debug('Connection has risks in renderConnections:', {
             from: conn.from,
             to: conn.to,
             risksCount: conn.risks.length

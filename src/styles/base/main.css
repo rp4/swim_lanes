@@ -173,7 +173,7 @@ body::before {
 }
 
 .swimlane.drop-target {
-    fill: rgba(79, 195, 247, 0.15) !important;
+    fill: rgba(79, 195, 247, 0.3) !important;
     stroke: #29b6f6 !important;
     stroke-width: 2 !important;
     stroke-dasharray: 5, 5;
@@ -338,7 +338,6 @@ body::before {
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    border: 3px dashed #64b5f6;
     border-radius: 16px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: inset 0 2px 12px rgba(33, 150, 243, 0.1);
@@ -346,8 +345,6 @@ body::before {
 
 .drop-zone.drag-over {
     background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
-    border-color: #1976d2;
-    border-width: 3px;
     box-shadow: inset 0 4px 20px rgba(33, 150, 243, 0.2);
     transform: scale(0.98);
 }
@@ -524,7 +521,7 @@ body::before {
 }
 
 .swimlane {
-    fill: rgba(250, 250, 250, 0.85);
+    fill: white;
     stroke: #e0e0e0;
     stroke-width: 1;
 }

@@ -193,7 +193,6 @@ export class LandingPage {
       width: 100%;
       max-width: 42rem;
       padding: 3rem;
-      border: 2px dashed;
       border-radius: 1rem;
       transition: all 0.3s ease;
       background: rgba(255, 255, 255, 0.95);
@@ -201,8 +200,8 @@ export class LandingPage {
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       ${
         this.isDragging
-          ? 'border-color: #5b21b6; background: rgba(139, 92, 246, 0.1);'
-          : 'border-color: #d1d5db; background: rgba(255, 255, 255, 0.95);'
+          ? 'background: rgba(139, 92, 246, 0.1);'
+          : 'background: rgba(255, 255, 255, 0.95);'
       }
     `;
 

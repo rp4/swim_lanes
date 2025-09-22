@@ -1,4 +1,5 @@
 import { ProcessParser } from './core/utils/parser.js';
+import { Logger } from './core/utils/Logger.js';
 import { SwimLaneRenderer } from './components/diagram/SwimLane.js';
 import { ProcessExporter } from './lib/export/exporter.js';
 import { DiagramEditor } from './components/editor/Editor.js';
@@ -9,6 +10,7 @@ import { ErrorHandler } from './core/services/ErrorHandler.js';
 import { LandingPage } from './components/landing/LandingPage.js';
 import { RiskDetailsModal } from './components/modals/RiskDetailsModal.js';
 import storageManager from './core/services/StorageManager.js';
+import { inject } from '@vercel/analytics';
 import './styles/base/main.css';
 
 class SwimLaneApp {
@@ -67,26 +69,36 @@ class SwimLaneApp {
         const connection = this.renderer.findConnection(e.detail.fromId, e.detail.toId);
         if (connection) {
           connection.risks = e.detail.risks;
-          console.log('Connection risks updated in app.js:', {
+          Logger.debug('Connection risks updated in app.js:', {
             from: e.detail.fromId,
             to: e.detail.toId,
             risksCount: e.detail.risks.length,
             risks: e.detail.risks,
             connection: connection,
           });
-          console.log('Calling renderer.render with processData:', this.renderer.processData);
+          Logger.debug('Calling renderer.render with processData:', this.renderer.processData);
           // Force full render when connection risks change to ensure badges are displayed
           this.renderer.render(this.renderer.processData, { forceFull: true });
         } else {
-          console.error('Connection not found:', e.detail.fromId, '->', e.detail.toId);
+          Logger.error('Connection not found:', e.detail.fromId, '->', e.detail.toId);
         }
       }
       this.editor.saveState();
     });
 
     this.keyboardManager.setupKeyboardShortcuts();
+
+    // Clean up any stuck drop-target classes periodically
+    // This handles edge cases where drag events don't fire properly
+    setInterval(() => {
+      const swimlanes = document.querySelectorAll('.swimlane.drop-target');
+      if (swimlanes.length > 0 && !document.querySelector('[draggable="true"]:active')) {
+        swimlanes.forEach(lane => lane.classList.remove('drop-target'));
+      }
+    }, 2000);
+
     this.initialized = true;
-    console.log('🏊 Swim Lane Diagram Visualizer initialized!');
+    Logger.info('🏊 Swim Lane Diagram Visualizer initialized!');
   }
 
   showLandingPage() {
@@ -111,7 +123,7 @@ class SwimLaneApp {
                 this.controls.showToolbarButtons();
               }
             } catch (error) {
-              console.error('Error parsing JSON:', error);
+              Logger.error('Error parsing JSON:', error);
               alert(`Invalid JSON file: ${error.message}`);
             }
           };
@@ -189,14 +201,27 @@ class SwimLaneApp {
           {
             label: 'Load Sample Process',
             variant: 'secondary',
-            onClick: () => {
-              this.initializeDiagram();
-              const sampleData = this.parser.generateSampleProcess();
-              this.renderer.render(sampleData);
-              this.controls.showToolbarButtons();
-              this.landingPage.remove();
-              document.querySelector('#dropZone').style.display = 'none';
-              document.querySelector('#swimlaneCanvas').style.display = 'block';
+            onClick: async () => {
+              try {
+                // Fetch the sample-data.json file from public directory
+                const response = await fetch('/sample-data.json');
+                if (!response.ok) {
+                  throw new Error('Failed to load sample data');
+                }
+                const sampleData = await response.json();
+
+                this.initializeDiagram();
+                // Parse the sample data through the parser to ensure it's properly formatted
+                const processData = this.parser.parse(sampleData);
+                this.renderer.render(processData);
+                this.controls.showToolbarButtons();
+                this.landingPage.remove();
+                document.querySelector('#dropZone').style.display = 'none';
+                document.querySelector('#swimlaneCanvas').style.display = 'block';
+              } catch (error) {
+                Logger.error('Error loading sample process:', error);
+                alert('Failed to load sample process. Please try uploading a JSON file instead.');
+              }
             },
           },
         ],
@@ -267,6 +292,9 @@ class SwimLaneApp {
 document.addEventListener('DOMContentLoaded', () => {
   const app = new SwimLaneApp();
   window.swimLaneApp = app;
+
+  // Initialize Vercel Analytics
+  inject();
 });
 
 export default SwimLaneApp;

@@ -240,6 +240,10 @@ export class DiagramControls {
     svg.addEventListener('drop', (e) => {
       e.preventDefault();
 
+      // Always clean up all drop-target classes first
+      const allSwimlanes = document.querySelectorAll('.swimlane');
+      allSwimlanes.forEach((lane) => lane.classList.remove('drop-target'));
+
       const nodeType = e.dataTransfer.getData('node-type');
       if (!nodeType) {
         return;
@@ -265,11 +269,6 @@ export class DiagramControls {
             targetLaneId = laneGroup.getAttribute('data-lane-id');
           }
         }
-        // Remove drop-target class from the swimlane rect
-        const swimlane = laneGroup.querySelector('.swimlane');
-        if (swimlane) {
-          swimlane.classList.remove('drop-target');
-        }
       });
 
       if (targetLaneId && this.renderer.processData) {
@@ -283,6 +282,12 @@ export class DiagramControls {
         const node = this.renderer.addNode(laneId, nodeType, nodeText, svgPoint.x);
         NotificationService.success(`${nodeType} node added to lane!`);
       }
+    });
+
+    // Clean up drop-target on drag end (covers cases when drop doesn't occur)
+    document.addEventListener('dragend', () => {
+      const allSwimlanes = document.querySelectorAll('.swimlane');
+      allSwimlanes.forEach((lane) => lane.classList.remove('drop-target'));
     });
   }
 

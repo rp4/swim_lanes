@@ -1,5 +1,6 @@
 import { ValidationService } from '../services/ValidationService.js';
 import { Theme } from '../config/theme.js';
+import { Logger } from './Logger.js';
 
 export class ProcessParser {
   constructor() {
@@ -9,7 +10,7 @@ export class ProcessParser {
   parse(jsonString) {
     try {
       const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
-      console.log('Parsing JSON data:', jsonData);
+      Logger.debug('Parsing JSON data:', jsonData);
       return this.parseProcess(jsonData);
     } catch (error) {
       throw new Error(`Failed to parse JSON: ${error.message}`);
@@ -58,7 +59,7 @@ export class ProcessParser {
 
       // Enhance nodes with icons and colors from theme
       lane.nodes.forEach((node) => {
-        console.log(
+        Logger.debug(
           `Processing node in lane ${lane.name}:`,
           node.id,
           'Type:',
@@ -69,7 +70,7 @@ export class ProcessParser {
         node.icon = Theme.nodes.getIcon(node.type);
         // Always use theme color based on node type, ignore imported color
         node.color = Theme.nodes.getColor(node.type);
-        console.log(`  -> Assigned color:`, node.color, 'for type:', node.type);
+        Logger.debug(`  -> Assigned color:`, node.color, 'for type:', node.type);
       });
     });
 

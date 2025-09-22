@@ -2,6 +2,8 @@
  * Global Error Handler Service
  * Provides centralized error handling, logging, and recovery mechanisms
  */
+import { Logger } from '../utils/Logger.js';
+
 export class ErrorHandler {
   static instance = null;
 
@@ -112,7 +114,7 @@ export class ErrorHandler {
       window.location.hostname === '127.0.0.1' ||
       window.location.protocol === 'file:';
     if (isDev) {
-      console.error('Error logged:', logEntry);
+      Logger.error('Error logged:', logEntry);
     }
 
     // Send to monitoring service (placeholder)
@@ -162,7 +164,7 @@ export class ErrorHandler {
       })
       .catch(() => {
         // Fallback to alert if NotificationService not available
-        console.error(message);
+        Logger.error(message);
       });
   }
 
