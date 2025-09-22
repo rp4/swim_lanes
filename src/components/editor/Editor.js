@@ -484,9 +484,12 @@ export class DiagramEditor {
         // Insert at new position
         lanes.splice(newPosition, 0, movedLane);
         NotificationService.success(`Lane moved to position ${newPosition + 1}`);
+        // Force full render when lanes are reordered
+        this.renderer.render(this.renderer.processData, { forceFull: true });
+      } else {
+        // Regular render for name changes only
+        this.renderer.render(this.renderer.processData);
       }
-
-      this.renderer.render(this.renderer.processData);
       modal.style.display = 'none';
       this.cleanup();
     };
