@@ -111,12 +111,6 @@ export class ProcessParser {
       }));
     }
 
-    // Handle legacy structure with separate controls array (for backward compatibility)
-    if (node.controls && Array.isArray(node.controls)) {
-      // This will be migrated by RiskDetailsModal when opened
-      parsedNode.controls = node.controls;
-    }
-
     return parsedNode;
   }
 
@@ -192,22 +186,21 @@ export class ProcessParser {
                   text: 'Incomplete documentation',
                   level: 'medium',
                   description: 'Customer may not provide all required documents',
-                  controlIds: ['control_1'],
+                  controls: [
+                    {
+                      id: 'control_1',
+                      text: 'Document checklist',
+                      type: 'preventive',
+                      description: 'Automated validation of required documents',
+                    },
+                  ],
                 },
                 {
                   id: 'risk_2',
                   text: 'Fraudulent information',
                   level: 'high',
                   description: 'Customer may submit false information',
-                  controlIds: [],
-                },
-              ],
-              controls: [
-                {
-                  id: 'control_1',
-                  text: 'Document checklist',
-                  type: 'preventive',
-                  description: 'Automated validation of required documents',
+                  controls: [],
                 },
               ],
             },
@@ -229,21 +222,20 @@ export class ProcessParser {
                   text: 'Processing delays',
                   level: 'low',
                   description: 'High volume may cause backlogs',
-                  controlIds: ['control_2', 'control_3'],
-                },
-              ],
-              controls: [
-                {
-                  id: 'control_2',
-                  text: 'SLA monitoring',
-                  type: 'detective',
-                  description: 'Track processing times against targets',
-                },
-                {
-                  id: 'control_3',
-                  text: 'Workload balancing',
-                  type: 'preventive',
-                  description: 'Automated distribution of applications',
+                  controls: [
+                    {
+                      id: 'control_2',
+                      text: 'SLA monitoring',
+                      type: 'detective',
+                      description: 'Track processing times against targets',
+                    },
+                    {
+                      id: 'control_3',
+                      text: 'Workload balancing',
+                      type: 'preventive',
+                      description: 'Automated distribution of applications',
+                    },
+                  ],
                 },
               ],
             },
@@ -258,21 +250,20 @@ export class ProcessParser {
                   text: 'Document forgery',
                   level: 'high',
                   description: 'Submitted documents may be forged',
-                  controlIds: ['control_4', 'control_5'],
-                },
-              ],
-              controls: [
-                {
-                  id: 'control_4',
-                  text: 'Document authentication',
-                  type: 'detective',
-                  description: 'Digital verification of document authenticity',
-                },
-                {
-                  id: 'control_5',
-                  text: 'Dual verification',
-                  type: 'preventive',
-                  description: 'Two-person review for high-value loans',
+                  controls: [
+                    {
+                      id: 'control_4',
+                      text: 'Document authentication',
+                      type: 'detective',
+                      description: 'Digital verification of document authenticity',
+                    },
+                    {
+                      id: 'control_5',
+                      text: 'Dual verification',
+                      type: 'preventive',
+                      description: 'Two-person review for high-value loans',
+                    },
+                  ],
                 },
               ],
             },
@@ -294,10 +285,9 @@ export class ProcessParser {
                   text: 'Identity theft',
                   level: 'high',
                   description: 'Applicant may be using stolen identity',
-                  controlIds: [],
+                  controls: [],
                 },
               ],
-              controls: [],
             },
             {
               id: 'node_5',
@@ -305,7 +295,6 @@ export class ProcessParser {
               type: 'decision',
               position: { x: 950, y: 70 },
               risks: [],
-              controls: [],
             },
             {
               id: 'node_6',
@@ -313,7 +302,6 @@ export class ProcessParser {
               type: 'end',
               position: { x: 1150, y: 70 },
               risks: [],
-              controls: [],
             },
           ],
         },

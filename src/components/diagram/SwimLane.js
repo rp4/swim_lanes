@@ -131,11 +131,7 @@ export class SwimLaneRenderer {
 
     // Add tooltip
     const title = this.createSVGElement('title');
-    const controlCount = risk.controls
-      ? risk.controls.length
-      : risk.controlIds
-        ? risk.controlIds.length
-        : 0;
+    const controlCount = risk.controls ? risk.controls.length : 0;
     const controlStatus = hasControl ? `Controls: ${controlCount} active` : 'No controls';
     const levelText = risk.level ? `[${risk.level.toUpperCase()}]` : '';
     title.textContent = `${risk.text}\n${levelText}\n${controlStatus}\n${risk.description || 'Click for details'}`;
@@ -406,14 +402,27 @@ export class SwimLaneRenderer {
         pathElement.setAttribute('d', pathData);
       }
 
-      // Update label position if exists
+      // Update label or create it if needed
+      const labelElement = connElement.querySelector('text.connection-label');
       if (connData.label) {
-        const labelElement = connElement.querySelector('text.connection-label');
+        const midPoint = this.getPathMidpoint(fromNode, toNode);
         if (labelElement) {
-          const midPoint = this.getPathMidpoint(fromNode, toNode);
+          // Update existing label text and position
+          labelElement.textContent = connData.label;
           labelElement.setAttribute('x', midPoint.x);
           labelElement.setAttribute('y', midPoint.y - 10);
+        } else {
+          // Create new label if it doesn't exist
+          const newLabel = this.createSVGElement('text');
+          newLabel.setAttribute('x', midPoint.x);
+          newLabel.setAttribute('y', midPoint.y - 10);
+          newLabel.classList.add('connection-label');
+          newLabel.textContent = connData.label;
+          connElement.appendChild(newLabel);
         }
+      } else if (labelElement) {
+        // Remove label if it no longer exists in data
+        labelElement.remove();
       }
 
       // Update risks if changed

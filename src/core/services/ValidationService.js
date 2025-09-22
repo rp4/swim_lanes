@@ -176,7 +176,6 @@ export class ValidationService {
       description: this.sanitizeText(node.description || ''),
       position: this.validatePosition(node.position),
       risks: this.validateRisks(node.risks),
-      controls: this.validateControls(node.controls),
     };
   }
 
@@ -267,10 +266,7 @@ export class ValidationService {
       text: this.sanitizeText(risk.text || 'Unnamed risk'),
       level: ['low', 'medium', 'high', 'critical'].includes(risk.level) ? risk.level : 'medium',
       description: this.sanitizeText(risk.description || ''),
-      controlIds: Array.isArray(risk.controlIds)
-        ? risk.controlIds.map((id) => this.sanitizeId(id))
-        : [],
-      // Preserve embedded controls if they exist
+      // Embedded controls within risks
       controls: Array.isArray(risk.controls) ? this.validateControls(risk.controls) : [],
     }));
   }

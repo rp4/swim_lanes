@@ -34,52 +34,6 @@ export class RiskDetailsModal {
     // Create deep copies of the node to avoid modifying the original
     this.originalNode = JSON.parse(JSON.stringify(node));
     this.currentNode = JSON.parse(JSON.stringify(node));
-    this.migrateDataStructure();
-    this.createModal();
-    this.populateModal();
-  }
-
-  migrateDataStructure() {
-    // Migrate from old structure (separate controls array with controlIds)
-    // to new structure (controls embedded within risks)
-    if (this.currentNode.controls && Array.isArray(this.currentNode.controls)) {
-      // Old structure detected - migrate it
-      const controlsMap = {};
-
-      // Create a map of controls by ID
-      this.currentNode.controls.forEach((control) => {
-        controlsMap[control.id] = control;
-      });
-
-      // Migrate risks to embed controls
-      if (this.currentNode.risks && Array.isArray(this.currentNode.risks)) {
-        this.currentNode.risks = this.currentNode.risks.map((risk) => {
-          // If risk has controlIds, convert them to embedded controls
-          if (risk.controlIds && Array.isArray(risk.controlIds)) {
-            const embeddedControls = risk.controlIds
-              .map((controlId) => controlsMap[controlId])
-              .filter((control) => control); // Filter out undefined controls
-
-            // Return risk with embedded controls
-            return {
-              ...risk,
-              controls: embeddedControls,
-              controlIds: undefined, // Remove old property
-            };
-          }
-
-          // If risk already has controls array, keep it as is
-          return {
-            ...risk,
-            controls: risk.controls || [],
-          };
-        });
-      }
-
-      // Remove the old controls array from the node
-      delete this.currentNode.controls;
-    }
-
     // Ensure all risks have a controls array
     if (this.currentNode.risks && Array.isArray(this.currentNode.risks)) {
       this.currentNode.risks = this.currentNode.risks.map((risk) => ({
@@ -87,6 +41,8 @@ export class RiskDetailsModal {
         controls: risk.controls || [],
       }));
     }
+    this.createModal();
+    this.populateModal();
   }
 
   createModal() {
