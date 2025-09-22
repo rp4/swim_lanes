@@ -150,6 +150,8 @@ export class ValidationService {
           to: this.sanitizeId(conn.to),
           label: this.sanitizeText(conn.label || ''),
           type: this.sanitizeConnectionType(conn.type),
+          // Preserve risks for connections
+          risks: this.validateRisks(conn.risks),
         };
       });
     } else {
@@ -268,6 +270,8 @@ export class ValidationService {
       controlIds: Array.isArray(risk.controlIds)
         ? risk.controlIds.map((id) => this.sanitizeId(id))
         : [],
+      // Preserve embedded controls if they exist
+      controls: Array.isArray(risk.controls) ? this.validateControls(risk.controls) : [],
     }));
   }
 
