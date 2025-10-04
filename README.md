@@ -4,12 +4,6 @@ An interactive, pool-themed swim lane diagram creator for visualizing business p
 
 ## Features
 
-### 🎨 Pool-Themed Design
-- Swimming pool aesthetic with water animations
-- Lane dividers styled as pool lane ropes
-- Nodes represented as swimmers with emoji icons
-- Gradient blue color scheme throughout
-
 ### 📤 Import/Export
 - **Upload JSON** files with process definitions
 - **Drag & Drop** support for file uploads
@@ -71,34 +65,6 @@ An interactive, pool-themed swim lane diagram creator for visualizing business p
 }
 ```
 
-## Node Types
-
-- **Start** (🏁): Green circle - Process beginning
-- **Process** (🏊): Blue rounded rectangle - Regular task
-- **Decision** (🤿): Orange diamond - Decision point
-- **End** (🏆): Red circle - Process completion
-
-## Keyboard Shortcuts
-
-### File Operations
-- `Ctrl+O`: Open file
-- `Ctrl+S`: Save as JSON
-- `Ctrl+E`: Export as image
-
-### Editing
-- `Ctrl+L`: Add new lane
-- `Ctrl+N`: Add new node
-- `C`: Toggle connection mode
-- `Delete`: Delete selected node
-- `Ctrl+Z`: Undo
-- `Ctrl+Y`: Redo
-
-### View
-- `Ctrl+Plus`: Zoom in
-- `Ctrl+Minus`: Zoom out
-- `Ctrl+0`: Fit to screen
-- `H`: Show help
-
 ## Browser Support
 
 Works best in modern browsers:
@@ -106,20 +72,6 @@ Works best in modern browsers:
 - Firefox 88+
 - Safari 14+
 - Edge 90+
-
-## Local Development
-
-To run locally with a web server:
-
-```bash
-# Python 3
-python3 -m http.server 8080
-
-# Node.js
-npx http-server -p 8080
-
-# Then open http://localhost:8080
-```
 
 ## License
 
@@ -129,3 +81,11 @@ Free to use for personal and commercial projects.
 
 Created with vanilla JavaScript, SVG, and CSS3 animations.
 Icons and emojis are native Unicode characters.
+
+---
+
+<p align="center">
+  Made with ❤️ by AuditToolbox
+  <br>
+  <a href="https://www.audittoolbox.com/">AuditToolbox</a> • 
+</p>

@@ -94,18 +94,20 @@ export class LandingPage {
       footerLinks: [
         {
           icon: this.createGithubIcon(),
-          href: 'https://github.com/rp4/SwimLanes',
+          href: 'https://github.com/rp4/swim_lanes',
           title: 'GitHub Repository',
         },
         {
           icon: this.createChatGPTIcon(),
           href: 'https://chatgpt.com',
           title: 'Run the custom GPT to create your inputs here',
+          visible: false,
         },
         {
           icon: '🏆',
           href: 'https://scoreboard.audittoolbox.com',
           title: 'See the prompt to create your inputs here',
+          visible: false,
         },
         {
           icon: '🧰',
@@ -330,6 +332,7 @@ export class LandingPage {
             ? `
           <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-top: 2rem;">
             ${this.config.footerLinks
+              .filter((link) => link.visible !== false)
               .map((link) => {
                 // Check if icon is an emoji (not SVG)
                 const isEmoji = !link.icon.includes('<svg');

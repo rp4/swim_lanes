@@ -36,8 +36,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 Unsure where to begin contributing? You can start by looking through these `beginner` and `help-wanted` issues:
 
-* [Beginner issues](https://github.com/yourusername/swimlanes/labels/beginner) - issues which should only require a few lines of code
-* [Help wanted issues](https://github.com/yourusername/swimlanes/labels/help%20wanted) - issues which should be a bit more involved
+* [Beginner issues](https://github.com/rp4/swimlanes/labels/beginner) - issues which should only require a few lines of code
+* [Help wanted issues](https://github.com/rp4/swimlanes/labels/help%20wanted) - issues which should be a bit more involved
 
 ### Pull Requests
 
@@ -60,7 +60,7 @@ Unsure where to begin contributing? You can start by looking through these `begi
 
 1. Fork and clone the repository:
 ```bash
-git clone https://github.com/yourusername/swimlanes.git
+git clone https://github.com/rp4/swimlanes.git
 cd swimlanes
 ```
 
@@ -196,8 +196,8 @@ We use semantic versioning and automated releases:
 
 ## Community
 
-* [GitHub Discussions](https://github.com/yourusername/swimlanes/discussions) - For questions and discussions
-* [Issue Tracker](https://github.com/yourusername/swimlanes/issues) - For bugs and feature requests
+* [GitHub Discussions](https://github.com/rp4/swimlanes/discussions) - For questions and discussions
+* [Issue Tracker](https://github.com/rp4/swimlanes/issues) - For bugs and feature requests
 * [Discord Server](https://discord.gg/swimlanes) - For real-time chat
 
 ## Recognition

@@ -14,13 +14,13 @@
     "svg",
     "interactive"
   ],
-  "homepage": "https://github.com/yourusername/swimlanes#readme",
+  "homepage": "https://github.com/rp4/swimlanes#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/swimlanes/issues"
+    "url": "https://github.com/rp4/swimlanes/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/swimlanes.git"
+    "url": "git+https://github.com/rp4/swimlanes.git"
   },
   "license": "MIT",
   "author": {

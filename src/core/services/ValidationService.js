@@ -20,10 +20,9 @@ export class ValidationService {
       return '';
     }
 
-    // Create a text node and extract its content to escape HTML
-    const div = document.createElement('div');
-    div.textContent = text.substring(0, this.MAX_TEXT_LENGTH);
-    return div.innerHTML;
+    // Simply truncate and return - textContent is used when displaying,
+    // which automatically prevents XSS without encoding special characters
+    return text.substring(0, this.MAX_TEXT_LENGTH);
   }
 
   /**

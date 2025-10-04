@@ -363,8 +363,50 @@ export class SwimLaneRenderer {
         iconElement.textContent = nodeData.icon || '';
       }
 
-      if (textElement && textElement.textContent !== nodeData.text) {
-        textElement.textContent = nodeData.text;
+      // Check if text content has changed
+      const currentText = Array.from(textElement.querySelectorAll('tspan'))
+        .map(t => t.textContent)
+        .join(' ')
+        .replace(/\.\.\.$/, ''); // Remove ellipsis for comparison
+
+      if (!currentText.includes(nodeData.text.substring(0, 20))) {
+        // Rebuild multi-line text
+        while (textElement.firstChild) {
+          textElement.removeChild(textElement.firstChild);
+        }
+
+        const words = nodeData.text.split(' ');
+        const maxWidth = nodeData.type === 'decision' ? 50 : 90;
+        const lineHeight = 12;
+        let line = '';
+        let lines = [];
+
+        words.forEach(word => {
+          const testLine = line + (line ? ' ' : '') + word;
+          if (testLine.length * 6 > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = testLine;
+          }
+        });
+        if (line) lines.push(line);
+
+        if (lines.length > 3) {
+          lines = lines.slice(0, 3);
+          lines[2] = lines[2].substring(0, lines[2].length - 3) + '...';
+        }
+
+        const startY = 5 - ((lines.length - 1) * lineHeight) / 2;
+        textElement.setAttribute('y', startY);
+
+        lines.forEach((lineText, i) => {
+          const tspan = this.createSVGElement('tspan');
+          tspan.setAttribute('x', 0);
+          tspan.setAttribute('dy', i === 0 ? 0 : lineHeight);
+          tspan.textContent = lineText;
+          textElement.appendChild(tspan);
+        });
       }
     }
 
@@ -476,14 +518,56 @@ export class SwimLaneRenderer {
     nodeIcon.textContent = nodeData.icon || '';
     nodeGroup.appendChild(nodeIcon);
 
-    // Add node text matching renderNodes
+    // Create multi-line text within the node
     const nodeText = this.createSVGElement('text');
     nodeText.setAttribute('x', 0);
-    nodeText.setAttribute('y', 10);
+    nodeText.setAttribute('y', 5);
     nodeText.setAttribute('text-anchor', 'middle');
     nodeText.classList.add('node-text');
-    nodeText.style.fontSize = '12px';
-    nodeText.textContent = nodeData.text;
+    nodeText.style.fontSize = '11px';
+    nodeText.style.fontWeight = '500';
+
+    // Word wrap logic for text within node bounds
+    const words = nodeData.text.split(' ');
+    const maxWidth = nodeData.type === 'decision' ? 50 : 90; // Narrower for diamond shapes
+    const lineHeight = 12;
+    let line = '';
+    let lines = [];
+
+    words.forEach(word => {
+      const testLine = line + (line ? ' ' : '') + word;
+      // Rough estimation: 6px per character average
+      if (testLine.length * 6 > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = testLine;
+      }
+    });
+    if (line) lines.push(line);
+
+    // Limit to 3 lines and add ellipsis if needed
+    if (lines.length > 3) {
+      lines = lines.slice(0, 3);
+      lines[2] = lines[2].substring(0, lines[2].length - 3) + '...';
+    }
+
+    // Center the text block vertically
+    const startY = 5 - ((lines.length - 1) * lineHeight) / 2;
+
+    lines.forEach((lineText, i) => {
+      const tspan = this.createSVGElement('tspan');
+      tspan.setAttribute('x', 0);
+      tspan.setAttribute('dy', i === 0 ? 0 : lineHeight);
+      tspan.textContent = lineText;
+      nodeText.appendChild(tspan);
+    });
+
+    // Adjust starting position for first tspan
+    if (lines.length > 0) {
+      nodeText.setAttribute('y', startY);
+    }
+
     nodeGroup.appendChild(nodeText);
 
     // Add risks if present
@@ -722,13 +806,55 @@ export class SwimLaneRenderer {
         nodeIcon.style.fontSize = '20px';
         nodeIcon.textContent = node.icon || '';
 
+        // Create multi-line text within the node
         const nodeText = this.createSVGElement('text');
         nodeText.setAttribute('x', 0);
-        nodeText.setAttribute('y', 10);
+        nodeText.setAttribute('y', 5);
         nodeText.setAttribute('text-anchor', 'middle');
         nodeText.classList.add('node-text');
-        nodeText.style.fontSize = '12px';
-        nodeText.textContent = node.text;
+        nodeText.style.fontSize = '11px';
+        nodeText.style.fontWeight = '500';
+
+        // Word wrap logic for text within node bounds
+        const words = node.text.split(' ');
+        const maxWidth = node.type === 'decision' ? 50 : 90; // Narrower for diamond shapes
+        const lineHeight = 12;
+        let line = '';
+        let lines = [];
+
+        words.forEach(word => {
+          const testLine = line + (line ? ' ' : '') + word;
+          // Rough estimation: 6px per character average
+          if (testLine.length * 6 > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = testLine;
+          }
+        });
+        if (line) lines.push(line);
+
+        // Limit to 3 lines and add ellipsis if needed
+        if (lines.length > 3) {
+          lines = lines.slice(0, 3);
+          lines[2] = lines[2].substring(0, lines[2].length - 3) + '...';
+        }
+
+        // Center the text block vertically
+        const startY = 5 - ((lines.length - 1) * lineHeight) / 2;
+
+        lines.forEach((lineText, i) => {
+          const tspan = this.createSVGElement('tspan');
+          tspan.setAttribute('x', 0);
+          tspan.setAttribute('dy', i === 0 ? 0 : lineHeight);
+          tspan.textContent = lineText;
+          nodeText.appendChild(tspan);
+        });
+
+        // Adjust starting position for first tspan
+        if (lines.length > 0) {
+          nodeText.setAttribute('y', startY);
+        }
 
         nodeGroup.appendChild(nodeShape);
         nodeGroup.appendChild(nodeIcon);
@@ -1121,7 +1247,7 @@ export class SwimLaneRenderer {
         (conn) => !nodeIds.includes(conn.from) && !nodeIds.includes(conn.to),
       );
       this.processData.lanes.splice(index, 1);
-      this.render(this.processData);
+      this.render(this.processData, { forceFull: true });
       return true;
     }
     return false;
