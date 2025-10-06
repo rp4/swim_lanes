@@ -85,7 +85,5 @@ Icons and emojis are native Unicode characters.
 ---
 
 <p align="center">
-  Made with ❤️ by AuditToolbox
-  <br>
-  <a href="https://www.audittoolbox.com/">AuditToolbox</a> • 
+  Made with ❤️ by AuditToolbox <a href="https://www.audittoolbox.com/">AuditToolbox</a> • 
 </p>
